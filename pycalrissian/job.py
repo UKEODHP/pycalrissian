@@ -249,23 +249,38 @@ class CalrissianJob:
 
             volume_mounts.append(pod_node_selector_volume_mount)
 
-        if self.runtime_context.is_pvc_created(name="pvc-workspace"):
-            efs_pvc_volume = client.V1Volume(
-                name="workspace-efs",
-                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                    claim_name="pvc-workspace"
-                ),
-            )
+        try:
+            workspace_config = self.runtime_context.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.runtime_context.namespace)
+        except Exception as e:
+            logger.error(f"Failed to read 'workspace-config' ConfigMap: {e}")
+            workspace_config = None
+        pvcs_json = workspace_config.data.get("pvcs", "[]")
+        try:
+            pvcs_list = json.loads(pvcs_json)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing PVCs JSON: {e}")
+            pvcs_list = []
 
-            efs_volume_mount = client.V1VolumeMount(
-                mount_path=f"/workspaces/{self.runtime_context.namespace.lstrip('ws-')}",
-                name="workspace-efs",
-            )
-            logger.info(f"Mounting workspace EFS volume at {efs_volume_mount.mount_path}.")
+        for pvc_map in pvcs_list:
+            pvc_name = pvc_map.get("pvcName")
+            if pvc_name and self.runtime_context.is_pvc_created(name=pvc_name):
+                volume_name = f"workspace-efs-{pvc_name}"
+                efs_pvc_volume = client.V1Volume(
+                    name=volume_name,
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                        claim_name=pvc_name
+                    ),
+                )
 
-            volumes.append(efs_pvc_volume)
+                efs_volume_mount = client.V1VolumeMount(
+                    mount_path=pvc_map.get("rootDirectory"),
+                    name=volume_name,
+                )
+                logger.info(f"Mounting workspace EFS volume at {efs_volume_mount.mount_path}.")
 
-            volume_mounts.append(efs_volume_mount)
+                volumes.append(efs_pvc_volume)
+
+                volume_mounts.append(efs_volume_mount)
 
         pod_spec = self.create_pod_template(
             name="calrissian_pod",
