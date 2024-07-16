@@ -249,21 +249,19 @@ class CalrissianJob:
 
             volume_mounts.append(pod_node_selector_volume_mount)
 
-        logger.info("Creating EFS volumes.")
-        if True: # TODO: Implement some kind of flag to enable/disable EFS
+        if self.runtime_context.is_pvc_created(name="pvc-workspace"):
             efs_pvc_volume = client.V1Volume(
                 name="workspace-efs",
                 persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
                     claim_name="pvc-workspace"
                 ),
             )
-            logger.info(f"Using EFS PVC volume at {efs_pvc_volume.persistent_volume_claim.claim_name}.")
 
             efs_volume_mount = client.V1VolumeMount(
                 mount_path=f"/workspaces/{self.runtime_context.namespace.lstrip('ws-')}",
                 name="workspace-efs",
             )
-            logger.info(f"Using EFS volume at {efs_volume_mount.mount_path}.")
+            logger.info(f"Mounting workspace EFS volume at {efs_volume_mount.mount_path}.")
 
             volumes.append(efs_pvc_volume)
 
