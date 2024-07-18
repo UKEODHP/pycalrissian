@@ -56,7 +56,7 @@ class CalrissianJob:
         self.max_ram = max_ram
         self.max_cores = max_cores
         self.security_context = security_context
-        self.service_account = service_account
+        self.service_account = runtime_context.service_account
         self.storage_class = storage_class  # check this, is it needed?
         self.debug = debug
         self.no_read_only = no_read_only
@@ -256,7 +256,9 @@ class CalrissianJob:
             ],
             volumes=volumes,
             security_context=self.security_context,
+            service_account=self.service_account,
         )
+        logger.info(f"Created pod template with service account {self.service_account}")
 
         return self.create_job(
             name=self.job_name,
@@ -293,7 +295,7 @@ class CalrissianJob:
 
     @staticmethod
     def create_pod_template(
-        name, containers, volumes, security_context, node_selector=None
+        name, containers, volumes, security_context, service_account, node_selector=None
     ):
         """Creates the pod template with the three containers"""
 
@@ -309,6 +311,7 @@ class CalrissianJob:
                     fs_group=security_context["fsGroup"],
                 ),
                 termination_grace_period_seconds=120,
+                service_account_name=service_account,
             ),
             metadata=client.V1ObjectMeta(name=name, labels={"pod_name": name}),
         )
