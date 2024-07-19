@@ -263,6 +263,7 @@ class CalrissianJob:
 
         for pvc_map in pvcs_list:
             pvc_name = pvc_map.get("pvcName")
+            pv_name = pvc_map.get("pvName")
             if pvc_name and self.runtime_context.is_pvc_created(name=pvc_name):
                 volume_name = f"workspace-efs-{pvc_name}"
                 efs_pvc_volume = client.V1Volume(
@@ -273,7 +274,7 @@ class CalrissianJob:
                 )
 
                 efs_volume_mount = client.V1VolumeMount(
-                    mount_path=pvc_map.get("rootDirectory"),
+                    mount_path=f"/workspace/{pv_name}",
                     name=volume_name,
                 )
                 logger.info(f"Mounting workspace EFS volume at {efs_volume_mount.mount_path}.")
