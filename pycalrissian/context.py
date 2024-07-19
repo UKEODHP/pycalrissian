@@ -20,6 +20,7 @@ class CalrissianContext:
         namespace: str,
         storage_class: str,
         volume_size: str,
+        service_account: str = "default",
         resource_quota: Dict = None,
         image_pull_secrets: Dict = None,
         kubeconfig_file: TextIO = None,
@@ -49,6 +50,7 @@ class CalrissianContext:
         self.namespace = namespace
         self.storage_class = storage_class
         self.volume_size = volume_size
+        self.service_account = service_account
 
         self.resource_quota = resource_quota
 
@@ -118,7 +120,7 @@ class CalrissianContext:
             logger.info(f"create secret {self.secret_name}")
             self.create_image_pull_secret(self.secret_name)
 
-            logger.info("patch service account")
+            logger.info(f"patch service account {self.service_account}")
             self.patch_service_account()
 
         if self.resource_quota:
@@ -379,7 +381,7 @@ class CalrissianContext:
         subject = client.models.V1Subject(
             api_group="",
             kind="ServiceAccount",
-            name="default",
+            name=self.service_account,
             namespace=self.namespace,
         )
 
@@ -587,7 +589,7 @@ class CalrissianContext:
         # adds a secret to the namespace default service account
 
         service_account_body = self.core_v1_api.read_namespaced_service_account(
-            name="default", namespace=self.namespace
+            name=self.service_account, namespace=self.namespace
         )
 
         if service_account_body.secrets is None:
@@ -603,7 +605,7 @@ class CalrissianContext:
 
         try:
             self.core_v1_api.patch_namespaced_service_account(
-                name="default",
+                name=self.service_account,
                 namespace=self.namespace,
                 body=service_account_body,
                 pretty=True,
