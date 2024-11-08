@@ -16,3 +16,4 @@ dependencies:
   - pip:
     - kubernetes
     - loguru
+    - boto3

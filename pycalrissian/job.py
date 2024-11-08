@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List
 
+import boto3
 import yaml
 from kubernetes import client
 from kubernetes.client.models.v1_container import V1Container
@@ -16,6 +17,11 @@ from loguru import logger
 
 from pycalrissian.context import CalrissianContext
 
+# Create boto3 sts client
+sts_client = boto3.client("sts")
+
+# Extract AWS Role ARN
+role_arn = os.environ.get("AWS_ROLE_ARN")
 
 class ContainerNames(Enum):
     CALRISSIAN = "calrissian"
@@ -45,6 +51,7 @@ class CalrissianJob:
         keep_pods: bool = False,
         backoff_limit: int = 2,
         tool_logs: bool = False,
+        token: str = None,
     ):
 
         self.cwl = cwl
@@ -64,6 +71,7 @@ class CalrissianJob:
         self.backoff_limit = backoff_limit
         self.volume_calrissian_wdir = "volume-calrissian-wdir"
         self.tool_logs = tool_logs
+        self.token = token
 
         if self.security_context is None:
             logger.info(
@@ -283,18 +291,37 @@ class CalrissianJob:
 
                 volume_mounts.append(efs_volume_mount)
 
+        
+        # Gather AWS Credentials
+        # Request AWS credentials for executing pods
+        username = self.runtime_context.namespace
+        role = sts_client.assume_role_with_web_identity(
+            RoleArn=role_arn,
+            RoleSessionName=f"{username}-session",
+            WebIdentityToken=self.token,
+        )
+        creds = role["Credentials"]
+
+        # Write these creds to the mounted credentials volume
+        with open("/aws-credentials/credentials", "w") as f:
+            f.write("[default]\n")
+            f.write(f"aws_access_key_id = {creds['AccessKeyId']}\n")
+            f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
+
         # Mount AWS Credentials Volume
         volume_name = f"aws-credentials"
         aws_cred_pvc_volume = client.V1Volume(
             name=volume_name,
             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name="aws-credentials"
+                claim_name="aws-credentials",
+                read_only=False,
             ),
         )
 
         aws_cred_volume_mount = client.V1VolumeMount(
             mount_path=f"/aws-credentials",
             name=volume_name,
+            read_only=False,
         )
         logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
 

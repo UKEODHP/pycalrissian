@@ -57,6 +57,7 @@ class CalrissianContext:
         self.image_pull_secrets = image_pull_secrets
         self.secret_name = "container-rg"
         self.calrissian_wdir = "calrissian-wdir"
+        self.aws_credentials = "aws-credentials"
 
         self.labels = labels
         self.annotations = annotations
@@ -112,6 +113,20 @@ class CalrissianContext:
             size=self.volume_size,
             storage_class=self.storage_class,
             access_modes=["ReadWriteMany"],
+        )
+
+        assert isinstance(response, V1PersistentVolumeClaim)
+
+        # create volumes
+        logger.info(
+            f"create persistent volume claim 'aws-credentials' of {self.volume_size} "
+            f"with storage class {self.storage_class}"
+        )
+        response = self.create_pvc(
+            name=self.aws_credentials,
+            size=self.volume_size,
+            storage_class=self.storage_class,
+            access_modes=["ReadWriteOnce"],
         )
 
         assert isinstance(response, V1PersistentVolumeClaim)
