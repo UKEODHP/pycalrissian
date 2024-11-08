@@ -310,7 +310,7 @@ class CalrissianJob:
         logger.info(creds)
 
         # Write these creds to the mounted credentials volume
-        with open("~/.aws/credentials", "w") as f:
+        with open("/root/.aws/credentials", "w") as f:
             f.write("[default]\n")
             f.write(f"aws_access_key_id = {creds['AccessKeyId']}\n")
             f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
@@ -326,7 +326,7 @@ class CalrissianJob:
         )
 
         aws_cred_volume_mount = client.V1VolumeMount(
-            mount_path=f"~/.aws",
+            mount_path=f"/root/.aws",
             name=volume_name,
         )
         logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
