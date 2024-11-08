@@ -283,6 +283,25 @@ class CalrissianJob:
 
                 volume_mounts.append(efs_volume_mount)
 
+        # Mount AWS Credentials Volume
+        volume_name = f"aws-credentials"
+        aws_cred_pvc_volume = client.V1Volume(
+            name=volume_name,
+            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                claim_name="aws-credentials"
+            ),
+        )
+
+        aws_cred_volume_mount = client.V1VolumeMount(
+            mount_path=f"/aws-credentials",
+            name=volume_name,
+        )
+        logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
+
+        volumes.append(aws_cred_pvc_volume)
+
+        volume_mounts.append(aws_cred_volume_mount)
+
         pod_spec = self.create_pod_template(
             name="calrissian_pod",
             containers=[
