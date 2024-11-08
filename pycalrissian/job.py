@@ -410,6 +410,11 @@ class CalrissianJob:
             name=name, labels={"job_name": name}, namespace=namespace
         )
 
+        # Define environment variables
+        env_vars = [
+            client.V1EnvVar(name="AWS_SHARED_CREDENTIALS_FILE", value="/aws-credentials/credentials"),
+        ]
+
         job = client.V1Job(
             api_version="batch/v1",
             kind="Job",
@@ -418,6 +423,7 @@ class CalrissianJob:
                 backoff_limit=backoff_limit,
                 template=pod_template,
             ),
+            env=env_vars,
         )
 
         return job
@@ -507,14 +513,6 @@ class CalrissianJob:
         calrissian_image = os.getenv(
             "CALRISSIAN_IMAGE", default="terradue/calrissian:0.12.0"
         )
-
-        aws_credentials_path_pod_env_var = client.V1EnvVar(
-                name="AWS_SHARED_CREDENTIALS_FILE",
-                value="/aws-credentials/credentials",
-            )
-
-        logger.info("Adding AWS credentials path to pod environment variables.")
-        env_vars.append(aws_credentials_path_pod_env_var)
 
         logger.info(f"using Calrissian image: {calrissian_image}")
 
