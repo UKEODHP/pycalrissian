@@ -295,6 +295,9 @@ class CalrissianJob:
         # Gather AWS Credentials
         # Request AWS credentials for executing pods
         username = self.runtime_context.namespace
+        logger.info("Token is %s", self.token)
+        logger.info("Username is %s", username)
+        logger.info("Role ARN is %s", role_arn)
         role = sts_client.assume_role_with_web_identity(
             RoleArn=role_arn,
             RoleSessionName=f"{username}-session",
