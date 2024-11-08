@@ -295,15 +295,18 @@ class CalrissianJob:
         # Gather AWS Credentials
         # Request AWS credentials for executing pods
         username = self.runtime_context.namespace
-        logger.info("Token is %s", self.token)
-        logger.info("Username is %s", username)
-        logger.info("Role ARN is %s", role_arn)
+        logger.info(f"Token is {self.token}")
+        logger.info(f"Username is {username}")
+        logger.info(f"Role ARN is {role_arn}")
         role = sts_client.assume_role_with_web_identity(
             RoleArn=role_arn,
             RoleSessionName=f"{username}-session",
             WebIdentityToken=self.token,
         )
         creds = role["Credentials"]
+
+        logger.info("Creds are:")
+        logger.info(creds)
 
         # Write these creds to the mounted credentials volume
         with open("/aws-credentials/credentials", "w") as f:
@@ -504,6 +507,14 @@ class CalrissianJob:
         calrissian_image = os.getenv(
             "CALRISSIAN_IMAGE", default="terradue/calrissian:0.12.0"
         )
+
+        aws_credentials_path_pod_env_var = client.V1EnvVar(
+                name="AWS_SHARED_CREDENTIALS_FILE",
+                value="/aws-credentials/credentials",
+            )
+
+        logger.info("Adding AWS credentials path to pod environment variables.")
+        env_vars.append(aws_credentials_path_pod_env_var)
 
         logger.info(f"using Calrissian image: {calrissian_image}")
 
