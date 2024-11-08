@@ -508,13 +508,13 @@ class CalrissianJob:
             "CALRISSIAN_IMAGE", default="terradue/calrissian:0.12.0"
         )
 
-        # aws_credentials_path_pod_env_var = client.V1EnvVar(
-        #         name="AWS_SHARED_CREDENTIALS_FILE",
-        #         value="/.aws-credentials/credentials",
-        #     )
+        aws_credentials_path_pod_env_var = client.V1EnvVar(
+                name="AWS_SHARED_CREDENTIALS_FILE",
+                value="/aws-credentials/credentials",
+            )
 
-        # logger.info("Adding AWS credentials path to pod environment variables.")
-        # env_vars.append(aws_credentials_path_pod_env_var)
+        logger.info("Adding AWS credentials path to pod environment variables.")
+        env_vars.append(aws_credentials_path_pod_env_var)
 
         logger.info(f"Env vars: {env_vars}")
 
