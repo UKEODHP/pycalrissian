@@ -309,16 +309,6 @@ class CalrissianJob:
         logger.info("Creds are:")
         logger.info(creds)
 
-        # Get the UID and GID of the directory
-        stat_info = os.stat("/root/.aws/credentials")
-        uid = stat_info.st_uid
-        gid = stat_info.st_gid
-
-
-        print(f"User ID: {uid}")
-        print(f"Group ID: {gid}")
-        print(f"Username: {username}")
-
         # Write these creds to the mounted credentials volume
         with open("/root/.aws/credentials", "w") as f:
             f.write("[default]\n")
