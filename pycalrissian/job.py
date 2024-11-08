@@ -310,7 +310,7 @@ class CalrissianJob:
         logger.info(creds)
 
         # Write these creds to the mounted credentials volume
-        with open("/aws-credentials/credentials", "w") as f:
+        with open("/.aws/credentials", "w") as f:
             f.write("[default]\n")
             f.write(f"aws_access_key_id = {creds['AccessKeyId']}\n")
             f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
@@ -326,9 +326,8 @@ class CalrissianJob:
         )
 
         aws_cred_volume_mount = client.V1VolumeMount(
-            mount_path=f"/aws-credentials",
+            mount_path=f"/.aws",
             name=volume_name,
-            read_only=False,
         )
         logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
 
@@ -509,13 +508,13 @@ class CalrissianJob:
             "CALRISSIAN_IMAGE", default="terradue/calrissian:0.12.0"
         )
 
-        aws_credentials_path_pod_env_var = client.V1EnvVar(
-                name="AWS_SHARED_CREDENTIALS_FILE",
-                value="/aws-credentials/credentials",
-            )
+        # aws_credentials_path_pod_env_var = client.V1EnvVar(
+        #         name="AWS_SHARED_CREDENTIALS_FILE",
+        #         value="/.aws-credentials/credentials",
+        #     )
 
-        logger.info("Adding AWS credentials path to pod environment variables.")
-        env_vars.append(aws_credentials_path_pod_env_var)
+        # logger.info("Adding AWS credentials path to pod environment variables.")
+        # env_vars.append(aws_credentials_path_pod_env_var)
 
         logger.info(f"Env vars: {env_vars}")
 
