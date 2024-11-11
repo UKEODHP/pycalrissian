@@ -118,18 +118,18 @@ class CalrissianContext:
         assert isinstance(response, V1PersistentVolumeClaim)
 
         # create volumes
-        logger.info(
-            f"create persistent volume claim {self.aws_credentials} of {self.volume_size} "
-            f"with storage class {self.storage_class}"
-        )
-        response = self.create_pvc(
-            name=self.aws_credentials,
-            size=self.volume_size,
-            storage_class=self.storage_class,
-            access_modes=["ReadWriteMany"],
-        )
+        # logger.info(
+        #     f"create persistent volume claim {self.aws_credentials} of {self.volume_size} "
+        #     f"with storage class {self.storage_class}"
+        # )
+        # response = self.create_pvc(
+        #     name=self.aws_credentials,
+        #     size=self.volume_size,
+        #     storage_class=self.storage_class,
+        #     access_modes=["ReadWriteMany"],
+        # )
 
-        assert isinstance(response, V1PersistentVolumeClaim)
+        # assert isinstance(response, V1PersistentVolumeClaim)
 
         if self.image_pull_secrets:
             logger.info(f"create secret {self.secret_name}")

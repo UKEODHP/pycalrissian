@@ -295,49 +295,49 @@ class CalrissianJob:
         
         # Gather AWS Credentials
         # Request AWS credentials for executing pods
-        username = self.runtime_context.namespace
-        logger.info(f"Token is {self.token}")
-        logger.info(f"Username is {username}")
-        logger.info(f"Role ARN is {role_arn}")
-        role = sts_client.assume_role_with_web_identity(
-            RoleArn=role_arn,
-            RoleSessionName=f"{username}-session",
-            WebIdentityToken=self.token,
-        )
-        creds = role["Credentials"]
+        # username = self.runtime_context.namespace
+        # logger.info(f"Token is {self.token}")
+        # logger.info(f"Username is {username}")
+        # logger.info(f"Role ARN is {role_arn}")
+        # role = sts_client.assume_role_with_web_identity(
+        #     RoleArn=role_arn,
+        #     RoleSessionName=f"{username}-session",
+        #     WebIdentityToken=self.token,
+        # )
+        # creds = role["Credentials"]
 
-        logger.info("Creds are:")
-        logger.info(creds)
+        # logger.info("Creds are:")
+        # logger.info(creds)
 
         # Write these creds to the mounted credentials volume
         # Ensure the directory exists
-        aws_credentials_dir = "/tmp/aws-credentials"
-        os.makedirs(aws_credentials_dir, exist_ok=True)
-        with open(f"{aws_credentials_dir}/credentials", "w") as f:
-            f.write("[default]\n")
-            f.write(f"aws_access_key_id = {creds['AccessKeyId']}\n")
-            f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
+        # aws_credentials_dir = "/tmp/aws-credentials"
+        # os.makedirs(aws_credentials_dir, exist_ok=True)
+        # with open(f"{aws_credentials_dir}/credentials", "w") as f:
+        #     f.write("[default]\n")
+        #     f.write(f"aws_access_key_id = {creds['AccessKeyId']}\n")
+        #     f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
 
         # Mount AWS Credentials Volume
-        volume_name = f"aws-credentials"
-        aws_cred_pvc_volume = client.V1Volume(
-            name=volume_name,
-            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name="aws-credentials",
-                read_only=False,
-            ),
-        )
+        # volume_name = f"aws-credentials"
+        # aws_cred_pvc_volume = client.V1Volume(
+        #     name=volume_name,
+        #     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+        #         claim_name="aws-credentials",
+        #         read_only=False,
+        #     ),
+        # )
 
-        aws_cred_volume_mount = client.V1VolumeMount(
-            mount_path=f"/tmp/aws-credentials",
-            name=volume_name,
-            read_only=False,
-        )
-        logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
+        # aws_cred_volume_mount = client.V1VolumeMount(
+        #     mount_path=f"/tmp/aws-credentials",
+        #     name=volume_name,
+        #     read_only=False,
+        # )
+        # logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
 
-        volumes.append(aws_cred_pvc_volume)
+        # volumes.append(aws_cred_pvc_volume)
 
-        volume_mounts.append(aws_cred_volume_mount)
+        # volume_mounts.append(aws_cred_volume_mount)
 
         pod_spec = self.create_pod_template(
             name="calrissian_pod",
