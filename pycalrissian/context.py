@@ -60,7 +60,7 @@ class CalrissianContext:
 
         # Configure AWS Creds Volume
         self.aws_credentials = "aws-credentials"
-        self.aws_storage_class = "block-storage"
+        self.aws_storage_class = "file-storage"
 
         self.labels = labels
         self.annotations = annotations
