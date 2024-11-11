@@ -328,6 +328,7 @@ class CalrissianJob:
         aws_cred_volume_mount = client.V1VolumeMount(
             mount_path=f"/aws-credentials",
             name=volume_name,
+            read_only=False,
         )
         logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
 
