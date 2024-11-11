@@ -310,7 +310,7 @@ class CalrissianJob:
         logger.info(creds)
 
         # Write these creds to the mounted credentials volume
-        with open("/aws-credentials/credentials", "w") as f:
+        with open("/tmp/aws-credentials/credentials", "w") as f:
             f.write("[default]\n")
             f.write(f"aws_access_key_id = {creds['AccessKeyId']}\n")
             f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
@@ -326,7 +326,7 @@ class CalrissianJob:
         )
 
         aws_cred_volume_mount = client.V1VolumeMount(
-            mount_path=f"/aws-credentials",
+            mount_path=f"/tmp/aws-credentials",
             name=volume_name,
             read_only=False,
         )
@@ -511,7 +511,7 @@ class CalrissianJob:
 
         aws_credentials_path_pod_env_var = client.V1EnvVar(
                 name="AWS_SHARED_CREDENTIALS_FILE",
-                value="/aws-credentials/credentials",
+                value="/tmp/aws-credentials/credentials",
             )
 
         logger.info("Adding AWS credentials path to pod environment variables.")
