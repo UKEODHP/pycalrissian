@@ -316,11 +316,11 @@ class CalrissianJob:
             f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
 
         # Mount AWS Credentials Volume
-        volume_name = f"aws-credentials"
+        volume_name = f"aws-credentialss"
         aws_cred_pvc_volume = client.V1Volume(
             name=volume_name,
             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name="aws-credentials",
+                claim_name="aws-credentialss",
                 read_only=False,
             ),
         )

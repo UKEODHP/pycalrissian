@@ -57,7 +57,7 @@ class CalrissianContext:
         self.image_pull_secrets = image_pull_secrets
         self.secret_name = "container-rg"
         self.calrissian_wdir = "calrissian-wdir"
-        self.aws_credentials = "aws-credentials"
+        self.aws_credentials = "aws-credentialss"
 
         self.labels = labels
         self.annotations = annotations
@@ -119,7 +119,7 @@ class CalrissianContext:
 
         # create volumes
         logger.info(
-            f"create persistent volume claim 'aws-credentials' of {self.volume_size} "
+            f"create persistent volume claim {self.aws_credentials} of {self.volume_size} "
             f"with storage class {self.storage_class}"
         )
         response = self.create_pvc(
