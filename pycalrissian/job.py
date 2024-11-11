@@ -310,7 +310,10 @@ class CalrissianJob:
         logger.info(creds)
 
         # Write these creds to the mounted credentials volume
-        with open("/tmp/aws-credentials/credentials", "w") as f:
+        # Ensure the directory exists
+        aws_credentials_dir = "/tmp/aws-credentials"
+        os.makedirs(aws_credentials_dir, exist_ok=True)
+        with open(f"{aws_credentials_dir}/credentials", "w") as f:
             f.write("[default]\n")
             f.write(f"aws_access_key_id = {creds['AccessKeyId']}\n")
             f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
