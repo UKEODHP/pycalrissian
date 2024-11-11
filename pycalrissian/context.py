@@ -57,7 +57,7 @@ class CalrissianContext:
         self.image_pull_secrets = image_pull_secrets
         self.secret_name = "container-rg"
         self.calrissian_wdir = "calrissian-wdir"
-        self.aws_credentials = "aws-credentialss"
+        self.aws_credentials = "aws-credentials"
 
         self.labels = labels
         self.annotations = annotations
