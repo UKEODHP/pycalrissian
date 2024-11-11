@@ -319,25 +319,25 @@ class CalrissianJob:
         #     f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
 
         # Mount AWS Credentials Volume
-        # volume_name = f"aws-credentials"
-        # aws_cred_pvc_volume = client.V1Volume(
-        #     name=volume_name,
-        #     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-        #         claim_name="aws-credentials",
-        #         read_only=False,
-        #     ),
-        # )
+        volume_name = f"aws-credentials"
+        aws_cred_pvc_volume = client.V1Volume(
+            name=volume_name,
+            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                claim_name="aws-credentials",
+                read_only=False,
+            ),
+        )
 
-        # aws_cred_volume_mount = client.V1VolumeMount(
-        #     mount_path=f"/tmp/aws-credentials",
-        #     name=volume_name,
-        #     read_only=False,
-        # )
-        # logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
+        aws_cred_volume_mount = client.V1VolumeMount(
+            mount_path=f"/aws-credentials",
+            name=volume_name,
+            read_only=False,
+        )
+        logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
 
-        # volumes.append(aws_cred_pvc_volume)
+        volumes.append(aws_cred_pvc_volume)
 
-        # volume_mounts.append(aws_cred_volume_mount)
+        volume_mounts.append(aws_cred_volume_mount)
 
         pod_spec = self.create_pod_template(
             name="calrissian_pod",
@@ -514,7 +514,7 @@ class CalrissianJob:
 
         aws_credentials_path_pod_env_var = client.V1EnvVar(
                 name="AWS_SHARED_CREDENTIALS_FILE",
-                value="/tmp/aws-credentials/credentials",
+                value="/aws-credentials/credentials",
             )
 
         logger.info("Adding AWS credentials path to pod environment variables.")
