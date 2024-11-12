@@ -189,20 +189,6 @@ class CalrissianJob:
             name="volume-params",
         )
 
-        # the RWX volume for Calrissian from volume claim
-        calrissian_wdir_volume = client.V1Volume(
-            name=self.volume_calrissian_wdir,
-            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name=self.runtime_context.calrissian_wdir,
-                read_only=False,
-            ),
-        )
-        calrissian_wdir_volume_mount = client.V1VolumeMount(
-            mount_path=self.calrissian_base_path,
-            name=self.volume_calrissian_wdir,
-            read_only=False,
-        )
-
         # Mount AWS Credentials Volume
         volume_name = "aws-credentials"
         aws_cred_pvc_volume = client.V1Volume(
@@ -219,6 +205,20 @@ class CalrissianJob:
             read_only=False,
         )
         logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
+
+        # the RWX volume for Calrissian from volume claim
+        calrissian_wdir_volume = client.V1Volume(
+            name=self.volume_calrissian_wdir,
+            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                claim_name=self.runtime_context.calrissian_wdir,
+                read_only=False,
+            ),
+        )
+        calrissian_wdir_volume_mount = client.V1VolumeMount(
+            mount_path=self.calrissian_base_path,
+            name=self.volume_calrissian_wdir,
+            read_only=False,
+        )
 
 
         volumes = [workflow_volume, params_volume, calrissian_wdir_volume, aws_cred_pvc_volume]
