@@ -26,6 +26,7 @@ class CalrissianContext:
         kubeconfig_file: TextIO = None,
         labels: Dict = None,
         annotations: Dict = None,
+        calling_workspace: str = None,
     ):
         """Creates a CalrissianContext object
 
@@ -64,6 +65,8 @@ class CalrissianContext:
 
         self.labels = labels
         self.annotations = annotations
+
+        self.calling_workspace = calling_workspace
 
     def initialise(self):
         """Create the kubernetes resources to run a Calrissian job
@@ -120,7 +123,64 @@ class CalrissianContext:
 
         assert isinstance(response, V1PersistentVolumeClaim)
 
-        # create volumes
+        # create additional calling workspace PVC
+        # Load kubeconfig
+        config.load_incluster_config()
+
+        # Create a CustomObjectsApi client instance
+        custom_api = client.CustomObjectsApi()
+
+        # Access the custom resource for the calling workspace
+        try:
+            calling_workspace = custom_api.get_namespaced_custom_object(
+                group="core.telespazio-uk.io",
+                version="v1alpha1",
+                namespace="workspaces",
+                plural="workspaces",
+                name=self.calling_workspace,
+            )
+        except Exception as e:
+            logger.error(f"Error in getting workspace CRD: {e}")
+            raise e
+        
+        calling_namespace = calling_workspace["spec"]["namespace"]
+
+        # Retrieve PVC list from the calling workspace
+        try:
+            workspace_config = self.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=calling_namespace)
+        except Exception as e:
+            logger.error(f"Failed to read 'workspace-config' ConfigMap: {e}")
+            workspace_config = None
+        pvcs_json = workspace_config.data.get("pvcs", "[]")
+        try:
+            pvcs_list = json.loads(pvcs_json)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing PVCs JSON: {e}")
+            pvcs_list = []
+
+        # Create PVC for each PV
+        for pvc_map in pvcs_list:
+            pvc_name = pvc_map.get("pvcName")
+            pv_name = pvc_map.get("pvName")
+
+            # Read PV config
+            # Get the PV definition
+            pv = self.core_v1_api.read_persistent_volume(name=pv_name)
+
+            logger.info(
+                f"create persistent volume claim {pvc_name} of PV {pv_name}"
+            )
+            response = self.create_pvc(
+                name=pvc_name,
+                size=pv.spec.capacity["storage"],
+                storage_class=pv.spec.storage_class_name,
+                access_modes=pv.spec.access_modes,
+                selector_labels={"type": pv_name}
+            )
+
+            assert isinstance(response, V1PersistentVolumeClaim)
+
+        # Create AWS Creds PVC
         logger.info(
             f"create persistent volume claim {self.aws_credentials} of {self.volume_size} "
             f"with storage class {self.aws_storage_class}"

@@ -94,7 +94,7 @@ class CalrissianJob:
         # Add env var for aws creds location
         if not self.pod_env_vars:
             self.pod_env_vars = {}
-            
+
         self.pod_env_vars.update({"AWS_SHARED_CREDENTIALS_FILE": "/aws-credentials/credentials"})
 
         if self.pod_env_vars:
@@ -517,14 +517,6 @@ class CalrissianJob:
         calrissian_image = os.getenv(
             "CALRISSIAN_IMAGE", default="terradue/calrissian:0.12.0"
         )
-
-        aws_credentials_path_pod_env_var = client.V1EnvVar(
-                name="AWS_SHARED_CREDENTIALS_FILE",
-                value="/aws-credentials/credentials",
-            )
-
-        logger.info("Adding AWS credentials path to pod environment variables.")
-        env_vars.append(aws_credentials_path_pod_env_var)
 
         logger.info(f"Env vars: {env_vars}")
 
