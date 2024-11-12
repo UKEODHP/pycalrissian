@@ -203,11 +203,30 @@ class CalrissianJob:
             read_only=False,
         )
 
-        volumes = [workflow_volume, params_volume, calrissian_wdir_volume]
+        # Mount AWS Credentials Volume
+        volume_name = "aws-credentials"
+        aws_cred_pvc_volume = client.V1Volume(
+            name=volume_name,
+            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                claim_name="aws-credentials",
+                read_only=False,
+            ),
+        )
+
+        aws_cred_volume_mount = client.V1VolumeMount(
+            mount_path="/aws-credentials",
+            name=volume_name,
+            read_only=False,
+        )
+        logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
+
+
+        volumes = [workflow_volume, params_volume, calrissian_wdir_volume, aws_cred_pvc_volume]
         volume_mounts = [
             workflow_volume_mount,
             params_volume_mount,
             calrissian_wdir_volume_mount,
+            aws_cred_volume_mount,
         ]
 
         if self.pod_env_vars:
@@ -318,26 +337,7 @@ class CalrissianJob:
         #     f.write(f"aws_access_key_id = {creds['AccessKeyId']}\n")
         #     f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
 
-        # Mount AWS Credentials Volume
-        volume_name = f"aws-credentials"
-        aws_cred_pvc_volume = client.V1Volume(
-            name=volume_name,
-            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name="aws-credentials",
-                read_only=False,
-            ),
-        )
-
-        aws_cred_volume_mount = client.V1VolumeMount(
-            mount_path=f"/aws-credentials",
-            name=volume_name,
-            read_only=False,
-        )
-        logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
-
-        volumes.append(aws_cred_pvc_volume)
-
-        volume_mounts.append(aws_cred_volume_mount)
+        
 
         pod_spec = self.create_pod_template(
             name="calrissian_pod",
