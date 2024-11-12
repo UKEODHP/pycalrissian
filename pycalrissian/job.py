@@ -91,6 +91,12 @@ class CalrissianJob:
         logger.info("create processing parameters config map")
         self._create_params_cm()
 
+        # Add env var for aws creds location
+        if not self.pod_env_vars:
+            self.pod_env_vars = {}
+            
+        self.pod_env_vars.update({"AWS_SHARED_CREDENTIALS_FILE": "/aws-credentials/credentials"})
+
         if self.pod_env_vars:
             logger.info("create pod environment variables config map")
             logger.info(self.pod_env_vars)
