@@ -115,7 +115,7 @@ class CalrissianContext:
             name=self.calrissian_wdir,
             size=self.volume_size,
             storage_class=self.storage_class,
-            access_modes=["ReadWriteMany"],
+            access_modes=["ReadWriteOnce"],
         )
 
         assert isinstance(response, V1PersistentVolumeClaim)
@@ -129,7 +129,7 @@ class CalrissianContext:
             name=self.aws_credentials,
             size=self.volume_size,
             storage_class=self.aws_storage_class,
-            access_modes=["ReadWriteMany"],
+            access_modes=["ReadWriteOnce"],
         )
 
         assert isinstance(response, V1PersistentVolumeClaim)
