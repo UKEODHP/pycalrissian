@@ -514,6 +514,7 @@ class CalrissianContext:
         access_modes,
         size,
         storage_class,
+        selector_labels=None,
     ):
 
         if self.is_pvc_created(name=name):
@@ -530,6 +531,11 @@ class CalrissianContext:
                 requests={"storage": size}
             ),  # noqa: E501
         )
+
+        if selector_labels:
+            spec.selector = client.V1LabelSelector(
+                match_labels=selector_labels
+            )
 
         spec.storage_class_name = storage_class
 
