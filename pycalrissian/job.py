@@ -7,7 +7,7 @@ from typing import Dict, List
 
 import boto3
 import yaml
-from kubernetes import client
+from kubernetes import client, config
 from kubernetes.client.models.v1_container import V1Container
 from kubernetes.client.models.v1_exec_action import V1ExecAction
 from kubernetes.client.models.v1_lifecycle import V1Lifecycle
@@ -52,6 +52,7 @@ class CalrissianJob:
         backoff_limit: int = 2,
         tool_logs: bool = False,
         token: str = None,
+        calling_namespace: str = None,
     ):
 
         self.cwl = cwl
@@ -72,6 +73,7 @@ class CalrissianJob:
         self.volume_calrissian_wdir = "volume-calrissian-wdir"
         self.tool_logs = tool_logs
         self.token = token
+        self.calling_namespace = calling_namespace
 
         if self.security_context is None:
             logger.info(
@@ -312,6 +314,45 @@ class CalrissianJob:
                     name=volume_name,
                 )
                 logger.info(f"Mounting workspace EFS volume at {efs_volume_mount.mount_path}.")
+
+                volumes.append(efs_pvc_volume)
+
+                volume_mounts.append(efs_volume_mount)
+
+        # Mount calling workspace PVC
+        # Load kubeconfig
+        config.load_incluster_config()
+
+        # Retrieve PVC list from the calling workspace
+        try:
+            workspace_config = self.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.calling_namespace)
+        except Exception as e:
+            logger.error(f"Failed to read 'workspace-config' ConfigMap: {e}")
+            workspace_config = None
+        pvcs_json = workspace_config.data.get("pvcs", "[]")
+        try:
+            pvcs_list = json.loads(pvcs_json)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing PVCs JSON: {e}")
+            pvcs_list = []
+
+        for pvc_map in pvcs_list:
+            pvc_name = pvc_map.get("pvcName")
+            pv_name = pvc_map.get("pvName")
+            if pvc_name and self.runtime_context.is_pvc_created(name=pvc_name):
+                volume_name = pv_name
+                efs_pvc_volume = client.V1Volume(
+                    name=volume_name,
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                        claim_name=pvc_name
+                    ),
+                )
+
+                efs_volume_mount = client.V1VolumeMount(
+                    mount_path=f"/workspace/{pv_name}",
+                    name=volume_name,
+                )
+                logger.info(f"Mounting calling workspace EFS volume {pv_name} at {efs_volume_mount.mount_path}.")
 
                 volumes.append(efs_pvc_volume)
 

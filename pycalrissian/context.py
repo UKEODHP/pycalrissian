@@ -26,7 +26,7 @@ class CalrissianContext:
         kubeconfig_file: TextIO = None,
         labels: Dict = None,
         annotations: Dict = None,
-        calling_workspace: str = None,
+        calling_namespace: str = None,
     ):
         """Creates a CalrissianContext object
 
@@ -66,7 +66,7 @@ class CalrissianContext:
         self.labels = labels
         self.annotations = annotations
 
-        self.calling_workspace = calling_workspace
+        self.calling_namespace = calling_namespace
 
     def initialise(self):
         """Create the kubernetes resources to run a Calrissian job
@@ -127,27 +127,9 @@ class CalrissianContext:
         # Load kubeconfig
         config.load_incluster_config()
 
-        # Create a CustomObjectsApi client instance
-        custom_api = client.CustomObjectsApi()
-
-        # Access the custom resource for the calling workspace
-        try:
-            calling_workspace = custom_api.get_namespaced_custom_object(
-                group="core.telespazio-uk.io",
-                version="v1alpha1",
-                namespace="workspaces",
-                plural="workspaces",
-                name=self.calling_workspace,
-            )
-        except Exception as e:
-            logger.error(f"Error in getting workspace CRD: {e}")
-            raise e
-        
-        calling_namespace = calling_workspace["spec"]["namespace"]
-
         # Retrieve PVC list from the calling workspace
         try:
-            workspace_config = self.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=calling_namespace)
+            workspace_config = self.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.calling_namespace)
         except Exception as e:
             logger.error(f"Failed to read 'workspace-config' ConfigMap: {e}")
             workspace_config = None
