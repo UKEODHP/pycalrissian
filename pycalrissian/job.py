@@ -325,7 +325,7 @@ class CalrissianJob:
 
         # Retrieve PVC list from the calling workspace
         try:
-            workspace_config = self.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.calling_namespace)
+            workspace_config = self.runtime_context.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.calling_namespace)
         except Exception as e:
             logger.error(f"Failed to read 'workspace-config' ConfigMap: {e}")
             workspace_config = None
@@ -340,11 +340,11 @@ class CalrissianJob:
             pvc_name = pvc_map.get("pvcName")
             pv_name = pvc_map.get("pvName")
             if pvc_name and self.runtime_context.is_pvc_created(name=pvc_name):
-                volume_name = pv_name
+                volume_name = f"calling-{pv_name}"
                 efs_pvc_volume = client.V1Volume(
                     name=volume_name,
                     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                        claim_name=pvc_name
+                        claim_name=volume_name
                     ),
                 )
 

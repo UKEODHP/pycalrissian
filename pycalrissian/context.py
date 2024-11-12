@@ -144,7 +144,7 @@ class CalrissianContext:
         for pvc_map in pvcs_list:
             pvc_name = pvc_map.get("pvcName")
             pv_name = pvc_map.get("pvName")
-
+            volume_name = f"calling-{pv_name}"
             # Read PV config
             # Get the PV definition
             pv = self.core_v1_api.read_persistent_volume(name=pv_name)
@@ -153,7 +153,7 @@ class CalrissianContext:
                 f"create persistent volume claim {pvc_name} of PV {pv_name}"
             )
             response = self.create_pvc(
-                name=pvc_name,
+                name=volume_name,
                 size=pv.spec.capacity["storage"],
                 storage_class=pv.spec.storage_class_name,
                 access_modes=pv.spec.access_modes,
