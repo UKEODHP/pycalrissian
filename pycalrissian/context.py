@@ -150,7 +150,7 @@ class CalrissianContext:
             pv = self.core_v1_api.read_persistent_volume(name=pv_name)
 
             logger.info(
-                f"create persistent volume claim {pvc_name} of PV {pv_name}"
+                f"create persistent volume claim {volume_name} of PV {pv_name}"
             )
             response = self.create_pvc(
                 name=volume_name,
