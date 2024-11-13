@@ -345,7 +345,7 @@ class CalrissianJob:
 
         for pvc in pvClaims:
             if  pvc["name"] == "pvc-workspace":
-                pvc_mount_path = pvc["mountPath"]
+                pvc_mount_path = pvc["pvName"]
                 break
 
         for access_point in efs_access_points:
