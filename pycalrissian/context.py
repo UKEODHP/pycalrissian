@@ -393,6 +393,11 @@ class CalrissianContext:
         return self.is_object_created(
             "read_namespaced_persistent_volume_claim", **kwargs
         )  # noqa: E501
+    
+    def is_pv_created(self, **kwargs):
+            
+            return self.is_object_created("read_persistent_volume", **kwargs
+            ) # noqa: E501
 
     def is_resource_quota_created(self, **kwargs):
 
@@ -570,6 +575,13 @@ class CalrissianContext:
             raise e
         
     def create_pv(self, name, size, storage_class, volume_handle, pvc_name):
+
+        if self.is_pv_created(name=name):
+
+            return self.core_v1_api.read_namespaced_persistent_volume(
+                name=name, namespace=self.namespace
+            )
+        
         metadata = client.V1ObjectMeta(name=name)
 
         spec = client.V1PersistentVolumeSpec(
