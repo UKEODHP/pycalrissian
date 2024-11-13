@@ -343,7 +343,7 @@ class CalrissianContext:
 
         read_methods[
             "read_namespaced_persistent_volume"
-        ] = self.core_v1_api.read_namespaced_persistent_volume  # noqa: E501
+        ] = self.core_v1_api.read_persistent_volume  # noqa: E501
 
         read_methods[
             "read_namespaced_secret"
