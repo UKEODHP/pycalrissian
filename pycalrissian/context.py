@@ -147,8 +147,8 @@ class CalrissianContext:
 
         # Create PV and PVC for each access point
         for access_point in efs_access_points:
-            pv_name = f"temp-{access_point['name']}-pv"
-            pvc_name = f"temp-{access_point['name']}-pvc"
+            pv_name = f"temp-{self.calling_workspace}-pv"
+            pvc_name = f"temp-{self.calling_workspace}-pvc"
             logger.info(
                 f"create persistent volume {pv_name} of {self.volume_size}"
             )

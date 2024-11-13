@@ -342,7 +342,7 @@ class CalrissianJob:
         efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
         for access_point in efs_access_points:
-            pvc_name = f"temp-{access_point['name']}-pvc"
+            pvc_name = f"temp-{self.calling_workspace}-pvc"
             logger.info(
                 f"create persistent volume {pv_name} of {self.volume_size}"
             )
