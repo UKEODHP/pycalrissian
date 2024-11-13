@@ -155,7 +155,7 @@ class CalrissianContext:
             response = self.create_pv(name=pv_name, 
                                       size=self.volume_size, 
                                       storage_class=self.storage_class, 
-                                      volume_handle=f"{access_point["fsID"]}::{access_point["accessPointID"]}", 
+                                      volume_handle=f"{access_point['fsID']}::{access_point['accessPointID']}", 
                                       pvc_name=pvc_name,
             )
 
