@@ -323,6 +323,26 @@ class CalrissianJob:
         # Load kubeconfig
         config.load_incluster_config()
 
+        pvc_name = f"calling-workspace-pv"
+        efs_pvc_volume = client.V1Volume(
+            name=pvc_name,
+            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                claim_name=pvc_name
+            ),
+        )
+
+        efs_volume_mount = client.V1VolumeMount(
+            mount_path=f"/workspace/tjellicoe-tpzuk",
+            name=pvc_name,
+            sub_path="/tjellicoe-tpzuk",
+        )
+
+        logger.info(f"Mounting calling workspace EFS volume {pvc_name} at {efs_volume_mount.mount_path}.")
+
+        volumes.append(efs_pvc_volume)
+
+        volume_mounts.append(efs_volume_mount)
+
         # Retrieve PVC list from the calling workspace
         try:
             workspace_config = self.runtime_context.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.calling_namespace)
@@ -336,27 +356,27 @@ class CalrissianJob:
             logger.error(f"Error parsing PVCs JSON: {e}")
             pvcs_list = []
 
-        for pvc_map in pvcs_list:
-            pvc_name = pvc_map.get("pvcName")
-            pv_name = pvc_map.get("pvName")
-            if pvc_name and self.runtime_context.is_pvc_created(name=pvc_name):
-                volume_name = f"calling-{pv_name}"
-                efs_pvc_volume = client.V1Volume(
-                    name=volume_name,
-                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                        claim_name=volume_name
-                    ),
-                )
+        # for pvc_map in pvcs_list:
+        #     pvc_name = pvc_map.get("pvcName")
+        #     pv_name = pvc_map.get("pvName")
+        #     if pvc_name and self.runtime_context.is_pvc_created(name=pvc_name):
+        #         volume_name = f"calling-{pv_name}"
+        #         efs_pvc_volume = client.V1Volume(
+        #             name=volume_name,
+        #             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+        #                 claim_name=volume_name
+        #             ),
+        #         )
 
-                efs_volume_mount = client.V1VolumeMount(
-                    mount_path=f"/workspace/{pv_name}",
-                    name=volume_name,
-                )
-                logger.info(f"Mounting calling workspace EFS volume {pv_name} at {efs_volume_mount.mount_path}.")
+        #         efs_volume_mount = client.V1VolumeMount(
+        #             mount_path=f"/workspace/{pv_name}",
+        #             name=volume_name,
+        #         )
+        #         logger.info(f"Mounting calling workspace EFS volume {pv_name} at {efs_volume_mount.mount_path}.")
 
-                volumes.append(efs_pvc_volume)
+        #         volumes.append(efs_pvc_volume)
 
-                volume_mounts.append(efs_volume_mount)
+        #         volume_mounts.append(efs_volume_mount)
 
         
         # Gather AWS Credentials
