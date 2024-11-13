@@ -626,8 +626,6 @@ class CalrissianContext:
             ),  # noqa: E501
         )
 
-        spec.claimRef()
-
         spec.storage_class_name = storage_class
 
         body = client.V1PersistentVolumeClaim(metadata=metadata, spec=spec)
