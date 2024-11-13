@@ -26,7 +26,7 @@ class CalrissianContext:
         kubeconfig_file: TextIO = None,
         labels: Dict = None,
         annotations: Dict = None,
-        calling_namespace: str = None,
+        calling_workspace: str = None,
     ):
         """Creates a CalrissianContext object
 
@@ -66,7 +66,7 @@ class CalrissianContext:
         self.labels = labels
         self.annotations = annotations
 
-        self.calling_namespace = calling_namespace
+        self.calling_workspace = calling_workspace
 
     def initialise(self):
         """Create the kubernetes resources to run a Calrissian job
@@ -125,7 +125,53 @@ class CalrissianContext:
 
         # create additional calling workspace PVC
         # Load kubeconfig
-        # config.load_incluster_config()
+        config.load_incluster_config()
+
+        # Create a CustomObjectsApi client instance
+        custom_api = client.CustomObjectsApi()
+
+        try:
+            calling_workspace = custom_api.get_namespaced_custom_object(
+                group="core.telespazio-uk.io",
+                version="v1alpha1",
+                namespace="workspaces",
+                plural="workspaces",
+                name=self.calling_workspace,
+            )
+        except Exception as e:
+            logger.error(f"Error in getting workspace CRD: {e}")
+            raise e
+        
+        # Get efs access-point id and fsid
+        efs_access_points = calling_workspace["aws"]["efs"]["accessPoints"]
+
+        # Create PV and PVC for each access point
+        for access_point in efs_access_points:
+            pv_name = f"temp-{access_point['name']}-pv"
+            pvc_name = f"temp-{access_point['name']}-pvc"
+            logger.info(
+                f"create persistent volume {pv_name} of {self.volume_size}"
+            )
+            response = self.create_pv(name=pv_name, 
+                                      size=self.volume_size, 
+                                      storage_class=self.storage_class, 
+                                      volume_handle=f"{access_point["fsID"]}::{access_point["accessPointID"]}", 
+                                      pvc_name=pvc_name,
+            )
+
+            logger.info(
+                f"create persistent volume claim {pvc_name} of {self.volume_size} "
+                f"with storage class {self.storage_class}"
+            )
+            response = self.create_pvc(
+                name=pvc_name,
+                size=self.volume_size,
+                storage_class=self.storage_class,
+                access_modes=["ReadWriteMany"],
+            )
+
+            assert isinstance(response, V1PersistentVolumeClaim)
+
 
         # user_service_pv = "us-pv"
         # pv = self.core_v1_api.read_persistent_volume(name=user_service_pv)
@@ -522,6 +568,38 @@ class CalrissianContext:
                 f" Exception when calling get status: {e}\n"
             )
             raise e
+        
+    def create_pv(self, name, size, storage_class, volume_handle, pvc_name):
+        metadata = client.V1ObjectMeta(name=name)
+
+        spec = client.V1PersistentVolumeSpec(
+            capacity={"storage": size},
+            volume_mode="Filesystem",
+            access_modes=["ReadWriteMany"],
+            persistent_volume_reclaim_policy="Retain",
+            storage_class_name=storage_class,
+            claim_ref=client.V1ObjectReference(
+                kind="PersistentVolumeClaim",
+                namespace=self.namespace,
+                name=pvc_name
+            ),
+            csi=client.V1CSIPersistentVolumeSource(
+                driver="efs.csi.aws.com",
+                volume_handle=volume_handle
+            )
+        )
+
+        body = client.V1PersistentVolume(metadata=metadata, spec=spec)
+
+        try:
+            response = self.core_v1_api.create_persistent_volume(body, pretty=True)
+            logger.info(f"pv {name} created")
+            return response
+        except ApiException as e:
+            logger.error(
+                f"pv {name} not created: Exception when calling create_persistent_volume: {e}\n"
+            )
+            raise e
 
     def create_pvc(
         self,
@@ -529,7 +607,8 @@ class CalrissianContext:
         access_modes,
         size,
         storage_class,
-        selector_labels=None,
+        access_point_id=None,
+        fs_id=None,
     ):
 
         if self.is_pvc_created(name=name):
@@ -547,10 +626,7 @@ class CalrissianContext:
             ),  # noqa: E501
         )
 
-        if selector_labels:
-            spec.selector = client.V1LabelSelector(
-                match_labels=selector_labels
-            )
+        spec.claimRef()
 
         spec.storage_class_name = storage_class
 

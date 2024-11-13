@@ -73,7 +73,7 @@ class CalrissianJob:
         self.volume_calrissian_wdir = "volume-calrissian-wdir"
         self.tool_logs = tool_logs
         self.token = token
-        self.calling_namespace = calling_namespace
+        self.calling_workspace = calling_workspace
 
         if self.security_context is None:
             logger.info(
@@ -321,27 +321,48 @@ class CalrissianJob:
 
         # Mount calling workspace PVC
         # Load kubeconfig
-        # config.load_incluster_config()
+        config.load_incluster_config()
 
-        # pvc_name = f"calling-workspace-pv"
-        # efs_pvc_volume = client.V1Volume(
-        #     name=pvc_name,
-        #     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-        #         claim_name=pvc_name
-        #     ),
-        # )
+        # Create a CustomObjectsApi client instance
+        custom_api = client.CustomObjectsApi()
 
-        # efs_volume_mount = client.V1VolumeMount(
-        #     mount_path=f"/workspace/tjellicoe-tpzuk",
-        #     name=pvc_name,
-        #     sub_path="/tjellicoe-tpzuk",
-        # )
+        try:
+            calling_workspace = custom_api.get_namespaced_custom_object(
+                group="core.telespazio-uk.io",
+                version="v1alpha1",
+                namespace="workspaces",
+                plural="workspaces",
+                name=self.calling_workspace,
+            )
+        except Exception as e:
+            logger.error(f"Error in getting workspace CRD: {e}")
+            raise e
+        
+        # Get efs access-point id and fsid
+        efs_access_points = calling_workspace["aws"]["efs"]["accessPoints"]
 
-        # logger.info(f"Mounting calling workspace EFS volume {pvc_name} at {efs_volume_mount.mount_path}.")
+        for access_point in efs_access_points:
+            pvc_name = f"temp-{access_point['name']}-pvc"
+            logger.info(
+                f"create persistent volume {pv_name} of {self.volume_size}"
+            )
+            efs_pvc_volume = client.V1Volume(
+                name=pvc_name,
+                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                    claim_name=pvc_name
+                ),
+            )
 
-        # volumes.append(efs_pvc_volume)
+            efs_volume_mount = client.V1VolumeMount(
+                mount_path=f"/workspace/{self.calling_workspace}",
+                name=pvc_name
+            )
 
-        # volume_mounts.append(efs_volume_mount)
+            logger.info(f"Mounting calling workspace EFS volume {pvc_name} at {efs_volume_mount.mount_path}.")
+
+            volumes.append(efs_pvc_volume)
+
+            volume_mounts.append(efs_volume_mount)
 
         # # Retrieve PVC list from the calling workspace
         # try:
