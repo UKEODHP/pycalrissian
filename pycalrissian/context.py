@@ -143,7 +143,7 @@ class CalrissianContext:
             raise e
         
         # Get efs access-point id and fsid
-        efs_access_points = calling_workspace["aws"]["efs"]["accessPoints"]
+        efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
         # Create PV and PVC for each access point
         for access_point in efs_access_points:
