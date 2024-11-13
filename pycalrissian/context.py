@@ -124,53 +124,54 @@ class CalrissianContext:
         assert isinstance(response, V1PersistentVolumeClaim)
 
         # create additional calling workspace PVC
-        # Load kubeconfig
-        config.load_incluster_config()
+        if self.calling_workspace:
+            # Load kubeconfig
+            config.load_incluster_config()
 
-        # Create a CustomObjectsApi client instance
-        custom_api = client.CustomObjectsApi()
+            # Create a CustomObjectsApi client instance
+            custom_api = client.CustomObjectsApi()
 
-        try:
-            calling_workspace = custom_api.get_namespaced_custom_object(
-                group="core.telespazio-uk.io",
-                version="v1alpha1",
-                namespace="workspaces",
-                plural="workspaces",
-                name=self.calling_workspace,
-            )
-        except Exception as e:
-            logger.error(f"Error in getting workspace CRD: {e}")
-            raise e
-        
-        # Get efs access-point id and fsid
-        efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
+            try:
+                calling_workspace = custom_api.get_namespaced_custom_object(
+                    group="core.telespazio-uk.io",
+                    version="v1alpha1",
+                    namespace="workspaces",
+                    plural="workspaces",
+                    name=self.calling_workspace,
+                )
+            except Exception as e:
+                logger.error(f"Error in getting workspace CRD: {e}")
+                raise e
+            
+            # Get efs access-point id and fsid
+            efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
-        # Create PV and PVC for each access point
-        for access_point in efs_access_points:
-            pv_name = f"temp-{self.calling_workspace}-pv"
-            pvc_name = f"temp-{self.calling_workspace}-pvc"
-            logger.info(
-                f"create persistent volume {pv_name} of {self.volume_size}"
-            )
-            response = self.create_pv(name=pv_name, 
-                                      size=self.volume_size, 
-                                      storage_class=self.storage_class, 
-                                      volume_handle=f"{access_point['fsID']}::{access_point['accessPointID']}", 
-                                      pvc_name=pvc_name,
-            )
+            # Create PV and PVC for each access point
+            for access_point in efs_access_points:
+                pv_name = f"temp-{self.calling_workspace}-pv"
+                pvc_name = f"temp-{self.calling_workspace}-pvc"
+                logger.info(
+                    f"create persistent volume {pv_name} of {self.volume_size}"
+                )
+                response = self.create_pv(name=pv_name, 
+                                        size=self.volume_size, 
+                                        storage_class=self.storage_class, 
+                                        volume_handle=f"{access_point['fsID']}::{access_point['accessPointID']}", 
+                                        pvc_name=pvc_name,
+                )
 
-            logger.info(
-                f"create persistent volume claim {pvc_name} of {self.volume_size} "
-                f"with storage class {self.storage_class}"
-            )
-            response = self.create_pvc(
-                name=pvc_name,
-                size=self.volume_size,
-                storage_class=self.storage_class,
-                access_modes=["ReadWriteMany"],
-            )
+                logger.info(
+                    f"create persistent volume claim {pvc_name} of {self.volume_size} "
+                    f"with storage class {self.storage_class}"
+                )
+                response = self.create_pvc(
+                    name=pvc_name,
+                    size=self.volume_size,
+                    storage_class=self.storage_class,
+                    access_modes=["ReadWriteMany"],
+                )
 
-            assert isinstance(response, V1PersistentVolumeClaim)
+                assert isinstance(response, V1PersistentVolumeClaim)
 
 
         # user_service_pv = "us-pv"

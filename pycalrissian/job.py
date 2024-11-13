@@ -320,56 +320,57 @@ class CalrissianJob:
                 volume_mounts.append(efs_volume_mount)
 
         # Mount calling workspace PVC
-        # Load kubeconfig
-        config.load_incluster_config()
+        if self.calling_workspace:
+            # Load kubeconfig
+            config.load_incluster_config()
 
-        # Create a CustomObjectsApi client instance
-        custom_api = client.CustomObjectsApi()
+            # Create a CustomObjectsApi client instance
+            custom_api = client.CustomObjectsApi()
 
-        try:
-            calling_workspace = custom_api.get_namespaced_custom_object(
-                group="core.telespazio-uk.io",
-                version="v1alpha1",
-                namespace="workspaces",
-                plural="workspaces",
-                name=self.calling_workspace,
-            )
-        except Exception as e:
-            logger.error(f"Error in getting workspace CRD: {e}")
-            raise e
-        
-        # Get efs access-point id and fsid
-        efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
+            try:
+                calling_workspace = custom_api.get_namespaced_custom_object(
+                    group="core.telespazio-uk.io",
+                    version="v1alpha1",
+                    namespace="workspaces",
+                    plural="workspaces",
+                    name=self.calling_workspace,
+                )
+            except Exception as e:
+                logger.error(f"Error in getting workspace CRD: {e}")
+                raise e
+            
+            # Get efs access-point id and fsid
+            efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
-        pvClaims = calling_workspace["spec"]["storage"]["persistentVolumeClaims"]
+            pvClaims = calling_workspace["spec"]["storage"]["persistentVolumeClaims"]
 
-        for pvc in pvClaims:
-            if  pvc["name"] == "pvc-workspace":
-                pvc_mount_path = pvc["pvName"]
-                break
+            for pvc in pvClaims:
+                if  pvc["name"] == "pvc-workspace":
+                    pvc_mount_path = pvc["pvName"]
+                    break
 
-        for access_point in efs_access_points:
-            pvc_name = f"temp-{self.calling_workspace}-pvc"
-            logger.info(
-                f"create persistent volume {pv_name}"
-            )
-            efs_pvc_volume = client.V1Volume(
-                name=pvc_name,
-                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                    claim_name=pvc_name
-                ),
-            )
+            for access_point in efs_access_points:
+                pvc_name = f"temp-{self.calling_workspace}-pvc"
+                logger.info(
+                    f"create persistent volume {pv_name}"
+                )
+                efs_pvc_volume = client.V1Volume(
+                    name=pvc_name,
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                        claim_name=pvc_name
+                    ),
+                )
 
-            efs_volume_mount = client.V1VolumeMount(
-                mount_path=f"/workspace/{pvc_mount_path}",
-                name=pvc_name
-            )
+                efs_volume_mount = client.V1VolumeMount(
+                    mount_path=f"/workspace/{pvc_mount_path}",
+                    name=pvc_name
+                )
 
-            logger.info(f"Mounting calling workspace EFS volume {pvc_name} at {efs_volume_mount.mount_path}.")
+                logger.info(f"Mounting calling workspace EFS volume {pvc_name} at {efs_volume_mount.mount_path}.")
 
-            volumes.append(efs_pvc_volume)
+                volumes.append(efs_pvc_volume)
 
-            volume_mounts.append(efs_volume_mount)
+                volume_mounts.append(efs_volume_mount)
 
         # # Retrieve PVC list from the calling workspace
         # try:
