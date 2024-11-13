@@ -125,22 +125,22 @@ class CalrissianContext:
 
         # create additional calling workspace PVC
         # Load kubeconfig
-        config.load_incluster_config()
+        # config.load_incluster_config()
 
-        user_service_pv = "us-pv"
-        pv = self.core_v1_api.read_persistent_volume(name=user_service_pv)
-        pvc_name = f"calling-workspace-pv"
+        # user_service_pv = "us-pv"
+        # pv = self.core_v1_api.read_persistent_volume(name=user_service_pv)
+        # pvc_name = f"calling-workspace-pv"
 
-        logger.info(
-            f"create persistent volume claim {pvc_name} of PV {user_service_pv}"
-        )
-        response = self.create_pvc(
-            name=pvc_name,
-            size=pv.spec.capacity["storage"],
-            storage_class=pv.spec.storage_class_name,
-            access_modes=pv.spec.access_modes,
-            selector_labels={"type": user_service_pv},
-        )
+        # logger.info(
+        #     f"create persistent volume claim {pvc_name} of PV {user_service_pv}"
+        # )
+        # response = self.create_pvc(
+        #     name=pvc_name,
+        #     size=pv.spec.capacity["storage"],
+        #     storage_class=pv.spec.storage_class_name,
+        #     access_modes=pv.spec.access_modes,
+        #     selector_labels={"type": user_service_pv},
+        # )
 
         # Retrieve PVC list from the calling workspace
         # try:

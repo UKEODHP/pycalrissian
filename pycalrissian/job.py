@@ -321,40 +321,40 @@ class CalrissianJob:
 
         # Mount calling workspace PVC
         # Load kubeconfig
-        config.load_incluster_config()
+        # config.load_incluster_config()
 
-        pvc_name = f"calling-workspace-pv"
-        efs_pvc_volume = client.V1Volume(
-            name=pvc_name,
-            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name=pvc_name
-            ),
-        )
+        # pvc_name = f"calling-workspace-pv"
+        # efs_pvc_volume = client.V1Volume(
+        #     name=pvc_name,
+        #     persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+        #         claim_name=pvc_name
+        #     ),
+        # )
 
-        efs_volume_mount = client.V1VolumeMount(
-            mount_path=f"/workspace/tjellicoe-tpzuk",
-            name=pvc_name,
-            sub_path="/tjellicoe-tpzuk",
-        )
+        # efs_volume_mount = client.V1VolumeMount(
+        #     mount_path=f"/workspace/tjellicoe-tpzuk",
+        #     name=pvc_name,
+        #     sub_path="/tjellicoe-tpzuk",
+        # )
 
-        logger.info(f"Mounting calling workspace EFS volume {pvc_name} at {efs_volume_mount.mount_path}.")
+        # logger.info(f"Mounting calling workspace EFS volume {pvc_name} at {efs_volume_mount.mount_path}.")
 
-        volumes.append(efs_pvc_volume)
+        # volumes.append(efs_pvc_volume)
 
-        volume_mounts.append(efs_volume_mount)
+        # volume_mounts.append(efs_volume_mount)
 
-        # Retrieve PVC list from the calling workspace
-        try:
-            workspace_config = self.runtime_context.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.calling_namespace)
-        except Exception as e:
-            logger.error(f"Failed to read 'workspace-config' ConfigMap: {e}")
-            workspace_config = None
-        pvcs_json = workspace_config.data.get("pvcs", "[]")
-        try:
-            pvcs_list = json.loads(pvcs_json)
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing PVCs JSON: {e}")
-            pvcs_list = []
+        # # Retrieve PVC list from the calling workspace
+        # try:
+        #     workspace_config = self.runtime_context.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.calling_namespace)
+        # except Exception as e:
+        #     logger.error(f"Failed to read 'workspace-config' ConfigMap: {e}")
+        #     workspace_config = None
+        # pvcs_json = workspace_config.data.get("pvcs", "[]")
+        # try:
+        #     pvcs_list = json.loads(pvcs_json)
+        # except json.JSONDecodeError as e:
+        #     logger.error(f"Error parsing PVCs JSON: {e}")
+        #     pvcs_list = []
 
         # for pvc_map in pvcs_list:
         #     pvc_name = pvc_map.get("pvcName")
