@@ -52,7 +52,7 @@ class CalrissianJob:
         backoff_limit: int = 2,
         tool_logs: bool = False,
         token: str = None,
-        calling_namespace: str = None,
+        calling_workspace: str = None,
     ):
 
         self.cwl = cwl

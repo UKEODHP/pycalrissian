@@ -342,7 +342,7 @@ class CalrissianContext:
         ] = self.core_v1_api.read_namespaced_persistent_volume_claim  # noqa: E501
 
         read_methods[
-            "read_namespaced_persistent_volume"
+            "read_persistent_volume"
         ] = self.core_v1_api.read_persistent_volume  # noqa: E501
 
         read_methods[
@@ -359,11 +359,12 @@ class CalrissianContext:
                 "read_namespaced_role",
                 "read_namespaced_role_binding",
                 "read_namespaced_persistent_volume_claim",
-                "read_namespaced_persistent_volume",
                 "read_namespaced_secret",
                 "read_namespaced_resource_quota",
             ]:
                 read_methods[read_method](namespace=self.namespace, **kwargs)
+            elif read_method == "read_persistent_volume": 
+                read_methods[read_method](**kwargs)
             else:
                 read_methods[read_method](self.namespace)
         except ApiException as exc:
@@ -583,8 +584,8 @@ class CalrissianContext:
 
         if self.is_pv_created(name=name):
 
-            return self.core_v1_api.read_namespaced_persistent_volume(
-                name=name, namespace=self.namespace
+            return self.core_v1_api.read_persistent_volume(
+                name=name
             )
         
         metadata = client.V1ObjectMeta(name=name)
