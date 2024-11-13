@@ -344,7 +344,7 @@ class CalrissianJob:
         for access_point in efs_access_points:
             pvc_name = f"temp-{self.calling_workspace}-pvc"
             logger.info(
-                f"create persistent volume {pv_name} of {self.volume_size}"
+                f"create persistent volume {pv_name}"
             )
             efs_pvc_volume = client.V1Volume(
                 name=pvc_name,
