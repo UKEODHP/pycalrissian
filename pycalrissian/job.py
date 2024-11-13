@@ -341,6 +341,13 @@ class CalrissianJob:
         # Get efs access-point id and fsid
         efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
+        pvClaims = calling_workspace["spec"]["storage"]["persistentVolumeClaims"]
+
+        for pvc in pvClaims:
+            if  pvc["name"] == "pvc-workspace":
+                pvc_mount_path = pvc["mountPath"]
+                break
+
         for access_point in efs_access_points:
             pvc_name = f"temp-{self.calling_workspace}-pvc"
             logger.info(
@@ -354,7 +361,7 @@ class CalrissianJob:
             )
 
             efs_volume_mount = client.V1VolumeMount(
-                mount_path=f"/workspace/{self.calling_workspace}",
+                mount_path=f"/workspace/{pvc_mount_path}",
                 name=pvc_name
             )
 
