@@ -32,6 +32,8 @@ class CalrissianJob:
         cwl: Dict,
         params: Dict,
         runtime_context: CalrissianContext,
+        calling_workspace: str,
+        executing_workspace: str,
         cwl_entry_point: str = None,
         pod_env_vars: Dict = None,
         pod_node_selector: Dict = None,
@@ -46,7 +48,6 @@ class CalrissianJob:
         backoff_limit: int = 2,
         tool_logs: bool = False,
         token: str = None,
-        calling_workspace: str = None,
     ):
 
         self.cwl = cwl
@@ -68,6 +69,7 @@ class CalrissianJob:
         self.tool_logs = tool_logs
         self.token = token
         self.calling_workspace = calling_workspace
+        self.executing_workspace = executing_workspace
 
         if self.security_context is None:
             logger.info(
@@ -314,7 +316,7 @@ class CalrissianJob:
                 volume_mounts.append(efs_volume_mount)
 
         # Mount calling workspace PVC
-        if self.calling_workspace:
+        if self.calling_workspace != self.executing_workspace:
             # Load kubeconfig
             config.load_incluster_config()
 

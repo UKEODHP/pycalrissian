@@ -20,13 +20,14 @@ class CalrissianContext:
         namespace: str,
         storage_class: str,
         volume_size: str,
+        calling_workspace: str,
+        executing_workspace: str,
         service_account: str = "default",
         resource_quota: Dict = None,
         image_pull_secrets: Dict = None,
         kubeconfig_file: TextIO = None,
         labels: Dict = None,
         annotations: Dict = None,
-        calling_workspace: str = None,
     ):
         """Creates a CalrissianContext object
 
@@ -67,6 +68,7 @@ class CalrissianContext:
         self.annotations = annotations
 
         self.calling_workspace = calling_workspace
+        self.executing_workspace = executing_workspace
 
     def initialise(self):
         """Create the kubernetes resources to run a Calrissian job
@@ -124,7 +126,7 @@ class CalrissianContext:
         assert isinstance(response, V1PersistentVolumeClaim)
 
         # create additional calling workspace PVC only when calling_workspace is provided
-        if self.calling_workspace:
+        if self.calling_workspace != self.executing_workspace:
             # Load kubeconfig
             config.load_incluster_config()
 
