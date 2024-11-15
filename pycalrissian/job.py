@@ -24,6 +24,7 @@ class ContainerNames(Enum):
 # SIDECAR_OUTPUT = "sidecar-container-output"
 # SIDECAR_COPY = "sidecar-container-copy"
 
+AWS_SHARED_CREDENTIALS_FILE = os.getenv("AWS_SHARED_CREDENTIALS_FILE", "/aws-credentials/credentials")
 
 class CalrissianJob:
     def __init__(
@@ -90,7 +91,7 @@ class CalrissianJob:
         if not self.pod_env_vars:
             self.pod_env_vars = {}
 
-        self.pod_env_vars.update({"AWS_SHARED_CREDENTIALS_FILE": "/aws-credentials/credentials"})
+        self.pod_env_vars.update({"AWS_SHARED_CREDENTIALS_FILE": AWS_SHARED_CREDENTIALS_FILE})
 
         if self.pod_env_vars:
             logger.info("create pod environment variables config map")
@@ -201,7 +202,7 @@ class CalrissianJob:
         )
 
         aws_cred_volume_mount = client.V1VolumeMount(
-            mount_path="/aws-credentials",
+            mount_path=f"/{AWS_SHARED_CREDENTIALS_FILE.split("/")[1]}",
             name=volume_name,
             read_only=False,
         )
