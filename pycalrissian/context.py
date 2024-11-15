@@ -22,6 +22,7 @@ class CalrissianContext:
         volume_size: str,
         calling_workspace: str,
         executing_workspace: str,
+        job_id: str, 
         service_account: str = "default",
         resource_quota: Dict = None,
         image_pull_secrets: Dict = None,
@@ -61,7 +62,7 @@ class CalrissianContext:
         self.calrissian_wdir = "calrissian-wdir"
 
         # Configure AWS Creds Volume
-        self.aws_credentials = "aws-credentials"
+        self.aws_credentials_volume_name = f"aws-credentials_{job_id}"
         self.aws_storage_class = "file-storage"
 
         self.labels = labels
@@ -69,6 +70,7 @@ class CalrissianContext:
 
         self.calling_workspace = calling_workspace
         self.executing_workspace = executing_workspace
+        self.job_id = job_id
 
     def initialise(self):
         """Create the kubernetes resources to run a Calrissian job
@@ -187,11 +189,11 @@ class CalrissianContext:
 
         # Create AWS Creds PVC
         logger.info(
-            f"create persistent volume claim {self.aws_credentials} of {self.volume_size} "
+            f"create persistent volume claim {self.aws_credentials_volume_name} of {self.volume_size} "
             f"with storage class {self.aws_storage_class}"
         )
         response = self.create_pvc(
-            name=self.aws_credentials,
+            name=self.aws_credentials_volume_name,
             size=self.volume_size,
             storage_class=self.aws_storage_class,
             access_modes=["ReadWriteOnce"],

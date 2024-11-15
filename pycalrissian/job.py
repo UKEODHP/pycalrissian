@@ -34,6 +34,7 @@ class CalrissianJob:
         runtime_context: CalrissianContext,
         calling_workspace: str,
         executing_workspace: str,
+        job_id: str,
         cwl_entry_point: str = None,
         pod_env_vars: Dict = None,
         pod_node_selector: Dict = None,
@@ -70,6 +71,7 @@ class CalrissianJob:
         self.token = token
         self.calling_workspace = calling_workspace
         self.executing_workspace = executing_workspace
+        self.aws_credentials_volume_name = f"aws-credentials_{job_id}"
 
         if self.security_context is None:
             logger.info(
@@ -198,7 +200,7 @@ class CalrissianJob:
         aws_cred_pvc_volume = client.V1Volume(
             name=volume_name,
             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name="aws-credentials",
+                claim_name=self.aws_credentials_volume_name,
                 read_only=False,
             ),
         )
