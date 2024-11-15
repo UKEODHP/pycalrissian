@@ -123,7 +123,7 @@ class CalrissianContext:
 
         assert isinstance(response, V1PersistentVolumeClaim)
 
-        # create additional calling workspace PVC
+        # create additional calling workspace PVC only when calling_workspace is provided
         if self.calling_workspace:
             # Load kubeconfig
             config.load_incluster_config()
@@ -131,6 +131,7 @@ class CalrissianContext:
             # Create a CustomObjectsApi client instance
             custom_api = client.CustomObjectsApi()
 
+            # extract calling workspace details
             try:
                 calling_workspace = custom_api.get_namespaced_custom_object(
                     group="core.telespazio-uk.io",
@@ -146,83 +147,43 @@ class CalrissianContext:
             # Get efs access-point id and fsid
             efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
+            # Get persistent volumes from the calling workspace
+            persistent_volumes = calling_workspace["spec"]["storage"]["persistentVolumes"]
+
+            # Identify desired access point name
+            for pv in persistent_volumes:
+                if pv["name"] == f"pv-{self.calling_workspace}-workspace":
+                    desired_access_point_name = pv["volumeSource"]["accessPointName"]
             # Create PV and PVC for each access point
             for access_point in efs_access_points:
-                pv_name = f"temp-{self.calling_workspace}-pv"
-                pvc_name = f"temp-{self.calling_workspace}-pvc"
-                logger.info(
-                    f"create persistent volume {pv_name} of {self.volume_size}"
-                )
-                response = self.create_pv(name=pv_name, 
-                                        size=self.volume_size, 
-                                        storage_class=self.storage_class, 
-                                        volume_handle=f"{access_point['fsID']}::{access_point['accessPointID']}", 
-                                        pvc_name=pvc_name,
-                )
+                #  For now only mount workspace PV
+                if access_point["name"] == desired_access_point_name:
+                    pv_name = f"temp-{self.calling_workspace}-pv"
+                    pvc_name = f"temp-{self.calling_workspace}-pvc-workspace"
+                    logger.info(
+                        f"create persistent volume {pv_name} of {self.volume_size}"
+                    )
+                    response = self.create_pv(name=pv_name, 
+                                            size=self.volume_size, 
+                                            storage_class=self.storage_class, 
+                                            volume_handle=f"{access_point['fsID']}::{access_point['accessPointID']}", 
+                                            pvc_name=pvc_name,
+                    )
 
-                logger.info(
-                    f"create persistent volume claim {pvc_name} of {self.volume_size} "
-                    f"with storage class {self.storage_class}"
-                )
-                response = self.create_pvc(
-                    name=pvc_name,
-                    size=self.volume_size,
-                    storage_class=self.storage_class,
-                    access_modes=["ReadWriteMany"],
-                )
+                    logger.info(
+                        f"create persistent volume claim {pvc_name} of {self.volume_size} "
+                        f"with storage class {self.storage_class}"
+                    )
+                    response = self.create_pvc(
+                        name=pvc_name,
+                        size=self.volume_size,
+                        storage_class=self.storage_class,
+                        access_modes=["ReadWriteMany"],
+                    )
 
-                assert isinstance(response, V1PersistentVolumeClaim)
+                    assert isinstance(response, V1PersistentVolumeClaim)
 
-
-        # user_service_pv = "us-pv"
-        # pv = self.core_v1_api.read_persistent_volume(name=user_service_pv)
-        # pvc_name = f"calling-workspace-pv"
-
-        # logger.info(
-        #     f"create persistent volume claim {pvc_name} of PV {user_service_pv}"
-        # )
-        # response = self.create_pvc(
-        #     name=pvc_name,
-        #     size=pv.spec.capacity["storage"],
-        #     storage_class=pv.spec.storage_class_name,
-        #     access_modes=pv.spec.access_modes,
-        #     selector_labels={"type": user_service_pv},
-        # )
-
-        # Retrieve PVC list from the calling workspace
-        # try:
-        #     workspace_config = self.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.calling_namespace)
-        # except Exception as e:
-        #     logger.error(f"Failed to read 'workspace-config' ConfigMap: {e}")
-        #     workspace_config = None
-        # pvcs_json = workspace_config.data.get("pvcs", "[]")
-        # try:
-        #     pvcs_list = json.loads(pvcs_json)
-        # except json.JSONDecodeError as e:
-        #     logger.error(f"Error parsing PVCs JSON: {e}")
-        #     pvcs_list = []
-
-        # Create PVC for each PV
-        # for pvc_map in pvcs_list:
-        #     pvc_name = pvc_map.get("pvcName")
-        #     pv_name = pvc_map.get("pvName")
-        #     volume_name = f"calling-{pv_name}"
-        #     # Read PV config
-        #     # Get the PV definition
-        #     pv = self.core_v1_api.read_persistent_volume(name=pv_name)
-
-        #     logger.info(
-        #         f"create persistent volume claim {volume_name} of PV {pv_name}"
-        #     )
-        #     response = self.create_pvc(
-        #         name=volume_name,
-        #         size=pv.spec.capacity["storage"],
-        #         storage_class=pv.spec.storage_class_name,
-        #         access_modes=pv.spec.access_modes,
-        #         selector_labels={"type": "us-pv"},
-        #     )
-
-        #     assert isinstance(response, V1PersistentVolumeClaim)
+                    break
 
         # Create AWS Creds PVC
         logger.info(

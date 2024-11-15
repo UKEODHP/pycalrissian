@@ -327,6 +327,7 @@ class CalrissianJob:
             # Create a CustomObjectsApi client instance
             custom_api = client.CustomObjectsApi()
 
+            # Get calling workspace CRD
             try:
                 calling_workspace = custom_api.get_namespaced_custom_object(
                     group="core.telespazio-uk.io",
@@ -342,97 +343,35 @@ class CalrissianJob:
             # Get efs access-point id and fsid
             efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
-            pvClaims = calling_workspace["spec"]["storage"]["persistentVolumeClaims"]
+            # Get calling workspace PVCs
+            persistent_volumes = calling_workspace["spec"]["storage"]["persistentVolumes"]
 
-            for pvc in pvClaims:
-                if  pvc["name"] == "pvc-workspace":
-                    pvc_mount_path = pvc["pvName"]
+            for pv in persistent_volumes:
+                if pv["name"] == f"pv-{self.calling_workspace}-workspace":
+                    pvc_mount_path = pv["name"]
+                    pv_name = f"temp-{self.calling_workspace}-pv"
+                    pvc_name = f"temp-{self.calling_workspace}-pvc-workspace"
+                    logger.info(
+                        f"Mount persistent volume {pv_name}"
+                    )
+                    efs_pvc_volume = client.V1Volume(
+                        name=pv_name,
+                        persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                            claim_name=pvc_name
+                        ),
+                    )
+
+                    efs_volume_mount = client.V1VolumeMount(
+                        mount_path=f"/workspace/{pvc_mount_path}",
+                        name=pv_name
+                    )
+
+                    logger.info(f"Mounting calling workspace EFS volume {pv_name} with claim {pvc_name} at {efs_volume_mount.mount_path}.")
+
+                    volumes.append(efs_pvc_volume)
+
+                    volume_mounts.append(efs_volume_mount)
                     break
-
-            for access_point in efs_access_points:
-                pvc_name = f"temp-{self.calling_workspace}-pvc"
-                logger.info(
-                    f"create persistent volume {pv_name}"
-                )
-                efs_pvc_volume = client.V1Volume(
-                    name=pvc_name,
-                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                        claim_name=pvc_name
-                    ),
-                )
-
-                efs_volume_mount = client.V1VolumeMount(
-                    mount_path=f"/workspace/{pvc_mount_path}",
-                    name=pvc_name
-                )
-
-                logger.info(f"Mounting calling workspace EFS volume {pvc_name} at {efs_volume_mount.mount_path}.")
-
-                volumes.append(efs_pvc_volume)
-
-                volume_mounts.append(efs_volume_mount)
-
-        # # Retrieve PVC list from the calling workspace
-        # try:
-        #     workspace_config = self.runtime_context.core_v1_api.read_namespaced_config_map(name="workspace-config", namespace=self.calling_namespace)
-        # except Exception as e:
-        #     logger.error(f"Failed to read 'workspace-config' ConfigMap: {e}")
-        #     workspace_config = None
-        # pvcs_json = workspace_config.data.get("pvcs", "[]")
-        # try:
-        #     pvcs_list = json.loads(pvcs_json)
-        # except json.JSONDecodeError as e:
-        #     logger.error(f"Error parsing PVCs JSON: {e}")
-        #     pvcs_list = []
-
-        # for pvc_map in pvcs_list:
-        #     pvc_name = pvc_map.get("pvcName")
-        #     pv_name = pvc_map.get("pvName")
-        #     if pvc_name and self.runtime_context.is_pvc_created(name=pvc_name):
-        #         volume_name = f"calling-{pv_name}"
-        #         efs_pvc_volume = client.V1Volume(
-        #             name=volume_name,
-        #             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-        #                 claim_name=volume_name
-        #             ),
-        #         )
-
-        #         efs_volume_mount = client.V1VolumeMount(
-        #             mount_path=f"/workspace/{pv_name}",
-        #             name=volume_name,
-        #         )
-        #         logger.info(f"Mounting calling workspace EFS volume {pv_name} at {efs_volume_mount.mount_path}.")
-
-        #         volumes.append(efs_pvc_volume)
-
-        #         volume_mounts.append(efs_volume_mount)
-
-        
-        # Gather AWS Credentials
-        # Request AWS credentials for executing pods
-        # username = self.runtime_context.namespace
-        # logger.info(f"Token is {self.token}")
-        # logger.info(f"Username is {username}")
-        # logger.info(f"Role ARN is {role_arn}")
-        # role = sts_client.assume_role_with_web_identity(
-        #     RoleArn=role_arn,
-        #     RoleSessionName=f"{username}-session",
-        #     WebIdentityToken=self.token,
-        # )
-        # creds = role["Credentials"]
-
-        # logger.info("Creds are:")
-        # logger.info(creds)
-
-        # Write these creds to the mounted credentials volume
-        # Ensure the directory exists
-        # aws_credentials_dir = "/tmp/aws-credentials"
-        # os.makedirs(aws_credentials_dir, exist_ok=True)
-        # with open(f"{aws_credentials_dir}/credentials", "w") as f:
-        #     f.write("[default]\n")
-        #     f.write(f"aws_access_key_id = {creds['AccessKeyId']}\n")
-        #     f.write(f"aws_secret_access_key = {creds['SecretAccessKey']}\n")
-
         
 
         pod_spec = self.create_pod_template(
