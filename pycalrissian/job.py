@@ -204,7 +204,7 @@ class CalrissianJob:
         )
 
         aws_cred_volume_mount = client.V1VolumeMount(
-            mount_path=f"/{AWS_SHARED_CREDENTIALS_FILE.split("/")[1]}",
+            mount_path=f"/{AWS_SHARED_CREDENTIALS_FILE.split('/')[1]}",
             name=volume_name,
             read_only=False,
         )
