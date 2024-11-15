@@ -62,7 +62,7 @@ class CalrissianContext:
         self.calrissian_wdir = "calrissian-wdir"
 
         # Configure AWS Creds Volume
-        self.aws_credentials_volume_name = f"aws-credentials_{job_id}"
+        self.aws_credentials_volume_name = f"aws-credentials-{job_id}"
         self.aws_storage_class = "file-storage"
 
         self.labels = labels

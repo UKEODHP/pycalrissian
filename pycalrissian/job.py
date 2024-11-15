@@ -71,7 +71,7 @@ class CalrissianJob:
         self.token = token
         self.calling_workspace = calling_workspace
         self.executing_workspace = executing_workspace
-        self.aws_credentials_volume_name = f"aws-credentials_{job_id}"
+        self.aws_credentials_volume_name = f"aws-credentials-{job_id}"
 
         if self.security_context is None:
             logger.info(
