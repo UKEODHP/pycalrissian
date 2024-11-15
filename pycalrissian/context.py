@@ -150,40 +150,38 @@ class CalrissianContext:
             # Get persistent volumes from the calling workspace
             persistent_volumes = calling_workspace["spec"]["storage"]["persistentVolumes"]
 
-            # Identify desired access point name
+            pv_name_map = {}
+            # Construct pv and access point map
             for pv in persistent_volumes:
-                if pv["name"] == f"pv-{self.calling_workspace}-workspace":
-                    desired_access_point_name = pv["volumeSource"]["accessPointName"]
+                pv_name_map.update({pv["volumeSource"]["accessPointName"]: pv["name"]})
+
             # Create PV and PVC for each access point
             for access_point in efs_access_points:
-                #  For now only mount workspace PV
-                if access_point["name"] == desired_access_point_name:
-                    pv_name = f"temp-{self.calling_workspace}-pv"
-                    pvc_name = f"temp-{self.calling_workspace}-pvc-workspace"
-                    logger.info(
-                        f"create persistent volume {pv_name} of {self.volume_size}"
-                    )
-                    response = self.create_pv(name=pv_name, 
-                                            size=self.volume_size, 
-                                            storage_class=self.storage_class, 
-                                            volume_handle=f"{access_point['fsID']}::{access_point['accessPointID']}", 
-                                            pvc_name=pvc_name,
-                    )
+                basic_pv_name = pv_name_map[access_point["name"]].replace("pv-", 1)
+                pv_name = f"temp-pv-{basic_pv_name}"
+                pvc_name = f"temp-{basic_pv_name}-pvc-workspace"
+                logger.info(
+                    f"create persistent volume {pv_name} of {self.volume_size}"
+                )
+                response = self.create_pv(name=pv_name, 
+                                        size=self.volume_size, 
+                                        storage_class=self.storage_class, 
+                                        volume_handle=f"{access_point['fsID']}::{access_point['accessPointID']}", 
+                                        pvc_name=pvc_name,
+                )
 
-                    logger.info(
-                        f"create persistent volume claim {pvc_name} of {self.volume_size} "
-                        f"with storage class {self.storage_class}"
-                    )
-                    response = self.create_pvc(
-                        name=pvc_name,
-                        size=self.volume_size,
-                        storage_class=self.storage_class,
-                        access_modes=["ReadWriteMany"],
-                    )
+                logger.info(
+                    f"create persistent volume claim {pvc_name} of {self.volume_size} "
+                    f"with storage class {self.storage_class}"
+                )
+                response = self.create_pvc(
+                    name=pvc_name,
+                    size=self.volume_size,
+                    storage_class=self.storage_class,
+                    access_modes=["ReadWriteMany"],
+                )
 
-                    assert isinstance(response, V1PersistentVolumeClaim)
-
-                    break
+                assert isinstance(response, V1PersistentVolumeClaim)
 
         # Create AWS Creds PVC
         logger.info(

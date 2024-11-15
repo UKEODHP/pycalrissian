@@ -337,36 +337,39 @@ class CalrissianJob:
             # Get efs access-point id and fsid
             efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
-            # Get calling workspace PVCs
+            # Get persistent volumes from the calling workspace
             persistent_volumes = calling_workspace["spec"]["storage"]["persistentVolumes"]
 
+            pv_name_map = {}
+            # Construct pv and access point map
             for pv in persistent_volumes:
-                if pv["name"] == f"pv-{self.calling_workspace}-workspace":
-                    pvc_mount_path = pv["name"]
-                    pv_name = f"temp-{self.calling_workspace}-pv"
-                    pvc_name = f"temp-{self.calling_workspace}-pvc-workspace"
-                    logger.info(
-                        f"Mount persistent volume {pv_name}"
-                    )
-                    efs_pvc_volume = client.V1Volume(
-                        name=pv_name,
-                        persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                            claim_name=pvc_name
-                        ),
-                    )
+                pv_name_map.update({pv["volumeSource"]["accessPointName"]: pv["name"]})
 
-                    efs_volume_mount = client.V1VolumeMount(
-                        mount_path=f"/workspace/{pvc_mount_path}",
-                        name=pv_name
-                    )
+            for access_point in efs_access_points:
+                pvc_mount_path = pv_name_map[access_point["name"]]
+                basic_pv_name = pvc_mount_path.replace("pv-", 1)
+                pv_name = f"temp-pv-{basic_pv_name}"
+                pvc_name = f"temp-{basic_pv_name}-pvc-workspace"
+                logger.info(
+                    f"Mount persistent volume {pv_name}"
+                )
+                efs_pvc_volume = client.V1Volume(
+                    name=pv_name,
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                        claim_name=pvc_name
+                    ),
+                )
 
-                    logger.info(f"Mounting calling workspace EFS volume {pv_name} with claim {pvc_name} at {efs_volume_mount.mount_path}.")
+                efs_volume_mount = client.V1VolumeMount(
+                    mount_path=f"/workspace/{pvc_mount_path}",
+                    name=pv_name
+                )
 
-                    volumes.append(efs_pvc_volume)
+                logger.info(f"Mounting calling workspace EFS volume {pv_name} with claim {pvc_name} at {efs_volume_mount.mount_path}.")
 
-                    volume_mounts.append(efs_volume_mount)
-                    break
-        
+                volumes.append(efs_pvc_volume)
+
+                volume_mounts.append(efs_volume_mount)        
 
         pod_spec = self.create_pod_template(
             name="calrissian_pod",
