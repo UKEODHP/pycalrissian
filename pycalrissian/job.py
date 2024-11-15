@@ -5,7 +5,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List
 
-import boto3
 import yaml
 from kubernetes import client, config
 from kubernetes.client.models.v1_container import V1Container
@@ -16,12 +15,6 @@ from kubernetes.client.models.v1_resource_requirements import V1ResourceRequirem
 from loguru import logger
 
 from pycalrissian.context import CalrissianContext
-
-# Create boto3 sts client
-sts_client = boto3.client("sts")
-
-# Extract AWS Role ARN
-role_arn = os.environ.get("AWS_ROLE_ARN")
 
 class ContainerNames(Enum):
     CALRISSIAN = "calrissian"
