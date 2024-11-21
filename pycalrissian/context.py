@@ -161,7 +161,8 @@ class CalrissianContext:
 
             # Create PV and PVC for each access point
             for access_point in efs_access_points:
-                basic_pv_name = pv_name_map[access_point["name"]].replace("pv-", "", 1)
+                pvc_mount_path = pv_name_map[access_point["name"]]
+                basic_pv_name = pvc_mount_path.replace("pv-", "", 1)
                 pv_name = f"temp-pv-{basic_pv_name}"
                 pvc_name = f"temp-{basic_pv_name}-pvc-workspace"
                 logger.info(

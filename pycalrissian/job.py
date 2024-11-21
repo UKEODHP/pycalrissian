@@ -99,7 +99,6 @@ class CalrissianJob:
 
         if self.pod_env_vars:
             logger.info("create pod environment variables config map")
-            logger.info(self.pod_env_vars)
             self._create_pod_env_vars_cm()
 
         if self.pod_node_selector:
@@ -338,7 +337,7 @@ class CalrissianJob:
                 logger.error(f"Error in getting workspace CRD: {e}")
                 raise e
             
-            # Get efs access-point id and fsid
+            # Get efs access-point details
             efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
             # Get persistent volumes from the calling workspace
@@ -547,8 +546,6 @@ class CalrissianJob:
         calrissian_image = os.getenv(
             "CALRISSIAN_IMAGE", default="terradue/calrissian:0.12.0"
         )
-
-        logger.info(f"Env vars: {env_vars}")
 
         logger.info(f"using Calrissian image: {calrissian_image}")
 
