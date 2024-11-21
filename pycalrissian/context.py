@@ -148,7 +148,7 @@ class CalrissianContext:
                 logger.error(f"Error in getting workspace CRD: {e}")
                 raise e
             
-            # Get efs access-point id and fsid
+            # Get efs access-point details
             efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
 
             # Get persistent volumes from the calling workspace
@@ -589,8 +589,6 @@ class CalrissianContext:
         access_modes,
         size,
         storage_class,
-        access_point_id=None,
-        fs_id=None,
     ):
 
         if self.is_pvc_created(name=name):
