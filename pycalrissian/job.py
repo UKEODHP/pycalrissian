@@ -71,7 +71,8 @@ class CalrissianJob:
         self.token = token
         self.calling_workspace = calling_workspace
         self.executing_workspace = executing_workspace
-        self.aws_credentials_volume_name = f"aws-credentials-{job_id}"
+        self.aws_credentials_workspace_volume_name = f"aws-credentials-workspace-{job_id}"
+        self.aws_credentials_user_service_volume_name = f"aws-credentials-service-{job_id}"
 
         if self.security_context is None:
             logger.info(
@@ -203,17 +204,34 @@ class CalrissianJob:
         aws_cred_pvc_volume = client.V1Volume(
             name=volume_name,
             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name=self.aws_credentials_volume_name,
+                claim_name=self.aws_credentials_workspace_volume_name,
                 read_only=False,
             ),
         )
 
         aws_cred_volume_mount = client.V1VolumeMount(
-            mount_path=f"/{AWS_SHARED_CREDENTIALS_FILE.split('/')[1]}",
+            mount_path=f"{AWS_SHARED_CREDENTIALS_FILE}/workspace",
             name=volume_name,
             read_only=False,
         )
-        logger.info(f"Mounting workspace aws-credentials volume at {aws_cred_volume_mount.mount_path}.")
+        logger.info(f"Mounting workspace aws-credentials volume for workspaces at {aws_cred_volume_mount.mount_path}.")
+
+        # Mount AWS Credentials Volume
+        volume_name = "aws-credentials"
+        aws_cred_pvc_volume = client.V1Volume(
+            name=volume_name,
+            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                claim_name=self.aws_credentials_user_service_volume_name,
+                read_only=False,
+            ),
+        )
+
+        aws_cred_volume_mount = client.V1VolumeMount(
+            mount_path=AWS_SHARED_CREDENTIALS_FILE,
+            name=volume_name,
+            read_only=False,
+        )
+        logger.info(f"Mounting workspace aws-credentials volume for user service at {aws_cred_volume_mount.mount_path}.")
 
         # the RWX volume for Calrissian from volume claim
         calrissian_wdir_volume = client.V1Volume(
