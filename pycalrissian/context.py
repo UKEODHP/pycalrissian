@@ -165,7 +165,7 @@ class CalrissianContext:
                 pvc_mount_path = pv_name_map[access_point["name"]]
                 basic_pv_name = pvc_mount_path.replace("pv-", "", 1)
                 pv_name = f"temp-pv-{basic_pv_name}"
-                pvc_name = f"temp-pvc-workspace{basic_pv_name}"
+                pvc_name = f"temp-pvc-workspace-{basic_pv_name}"
                 logger.info(
                     f"create persistent volume {pv_name} of {self.volume_size}"
                 )
