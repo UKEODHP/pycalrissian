@@ -214,7 +214,7 @@ class CalrissianJob:
             name=volume_name,
             read_only=False,
         )
-        logger.info(f"Mounting workspace aws-credentials volume for workspaces at {aws_cred_volume_mount.mount_path}.")
+        logger.info(f"Mounting workspace aws-credentials volume for workspaces at {aws_cred_volume_mount_workspace.mount_path}.")
 
         # Mount AWS Credentials Volume
         volume_name = "aws-credentials-service"
@@ -231,7 +231,7 @@ class CalrissianJob:
             name=volume_name,
             read_only=False,
         )
-        logger.info(f"Mounting workspace aws-credentials volume for user service at {aws_cred_volume_mount.mount_path}.")
+        logger.info(f"Mounting workspace aws-credentials volume for user service at {aws_cred_volume_mount_service.mount_path}.")
 
         # the RWX volume for Calrissian from volume claim
         calrissian_wdir_volume = client.V1Volume(
