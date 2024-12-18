@@ -201,7 +201,7 @@ class CalrissianJob:
 
         # Mount AWS Credentials Volume
         volume_name = "aws-credentials-workspace"
-        aws_cred_pvc_volume = client.V1Volume(
+        aws_cred_pvc_volume_workspace = client.V1Volume(
             name=volume_name,
             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
                 claim_name=self.aws_credentials_workspace_volume_name,
@@ -209,7 +209,7 @@ class CalrissianJob:
             ),
         )
 
-        aws_cred_volume_mount = client.V1VolumeMount(
+        aws_cred_volume_mount_workspace = client.V1VolumeMount(
             mount_path=f"{AWS_SHARED_CREDENTIALS_FILE}/workspace",
             name=volume_name,
             read_only=False,
@@ -218,7 +218,7 @@ class CalrissianJob:
 
         # Mount AWS Credentials Volume
         volume_name = "aws-credentials-service"
-        aws_cred_pvc_volume = client.V1Volume(
+        aws_cred_pvc_volume_service = client.V1Volume(
             name=volume_name,
             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
                 claim_name=self.aws_credentials_user_service_volume_name,
@@ -226,7 +226,7 @@ class CalrissianJob:
             ),
         )
 
-        aws_cred_volume_mount = client.V1VolumeMount(
+        aws_cred_volume_mount_service = client.V1VolumeMount(
             mount_path=f"{AWS_SHARED_CREDENTIALS_FILE}/service",
             name=volume_name,
             read_only=False,
@@ -248,12 +248,13 @@ class CalrissianJob:
         )
 
 
-        volumes = [workflow_volume, params_volume, calrissian_wdir_volume, aws_cred_pvc_volume]
+        volumes = [workflow_volume, params_volume, calrissian_wdir_volume, aws_cred_pvc_volume_workspace, aws_cred_pvc_volume_service]
         volume_mounts = [
             workflow_volume_mount,
             params_volume_mount,
             calrissian_wdir_volume_mount,
-            aws_cred_volume_mount,
+            aws_cred_volume_mount_workspace,
+            aws_cred_volume_mount_service,
         ]
 
         if self.pod_env_vars:
