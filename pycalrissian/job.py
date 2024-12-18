@@ -200,7 +200,7 @@ class CalrissianJob:
         )
 
         # Mount AWS Credentials Volume
-        volume_name = "aws-credentials"
+        volume_name = "aws-credentials-workspace"
         aws_cred_pvc_volume = client.V1Volume(
             name=volume_name,
             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
@@ -217,7 +217,7 @@ class CalrissianJob:
         logger.info(f"Mounting workspace aws-credentials volume for workspaces at {aws_cred_volume_mount.mount_path}.")
 
         # Mount AWS Credentials Volume
-        volume_name = "aws-credentials"
+        volume_name = "aws-credentials-service"
         aws_cred_pvc_volume = client.V1Volume(
             name=volume_name,
             persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
@@ -227,7 +227,7 @@ class CalrissianJob:
         )
 
         aws_cred_volume_mount = client.V1VolumeMount(
-            mount_path=AWS_SHARED_CREDENTIALS_FILE,
+            mount_path=f"{AWS_SHARED_CREDENTIALS_FILE}/service",
             name=volume_name,
             read_only=False,
         )
