@@ -229,7 +229,7 @@ class CalrissianJob:
         )
 
         aws_cred_volume_mount_service = client.V1VolumeMount(
-            mount_path=f"{AWS_SHARED_CREDENTIALS_FILE}/service",
+            mount_path=f"{AWS_SHARED_CREDENTIALS_DIR}/service",
             name=volume_name,
             read_only=False,
         )
