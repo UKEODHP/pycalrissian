@@ -24,7 +24,9 @@ class ContainerNames(Enum):
 # SIDECAR_OUTPUT = "sidecar-container-output"
 # SIDECAR_COPY = "sidecar-container-copy"
 
-AWS_SHARED_CREDENTIALS_FILE = os.getenv("AWS_SHARED_CREDENTIALS_FILE", "/aws-credentials/credentials")
+AWS_SHARED_CREDENTIALS_DIR = os.getenv("AWS_SHARED_CREDENTIALS_DIR", "/aws-credentials")
+AWS_SHARED_CREDENTIALS_FILENAME = os.path.join("AWS_SHARED_CREDENTIALS_FILENAME", "credentials")
+AWS_SHARED_CREDENTIALS_FILE = os.path.join(AWS_SHARED_CREDENTIALS_DIR, AWS_SHARED_CREDENTIALS_FILENAME)
 
 class CalrissianJob:
     def __init__(
@@ -210,7 +212,7 @@ class CalrissianJob:
         )
 
         aws_cred_volume_mount_workspace = client.V1VolumeMount(
-            mount_path=f"{AWS_SHARED_CREDENTIALS_FILE}/workspace",
+            mount_path=f"{AWS_SHARED_CREDENTIALS_DIR}/workspace",
             name=volume_name,
             read_only=False,
         )
