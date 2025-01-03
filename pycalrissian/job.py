@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Dict, List
 
 import yaml
-from kubernetes import client
+from kubernetes import client, config
 from kubernetes.client.models.v1_container import V1Container
 from kubernetes.client.models.v1_exec_action import V1ExecAction
 from kubernetes.client.models.v1_lifecycle import V1Lifecycle
@@ -16,7 +16,6 @@ from loguru import logger
 
 from pycalrissian.context import CalrissianContext
 
-
 class ContainerNames(Enum):
     CALRISSIAN = "calrissian"
 
@@ -25,6 +24,9 @@ class ContainerNames(Enum):
 # SIDECAR_OUTPUT = "sidecar-container-output"
 # SIDECAR_COPY = "sidecar-container-copy"
 
+AWS_SHARED_CREDENTIALS_DIR = os.getenv("AWS_SHARED_CREDENTIALS_DIR", "/aws-credentials")
+AWS_SHARED_CREDENTIALS_FILENAME = os.getenv("AWS_SHARED_CREDENTIALS_FILENAME", "credentials")
+AWS_SHARED_CREDENTIALS_FILE = os.path.join(AWS_SHARED_CREDENTIALS_DIR, AWS_SHARED_CREDENTIALS_FILENAME)
 
 class CalrissianJob:
     def __init__(
@@ -32,6 +34,9 @@ class CalrissianJob:
         cwl: Dict,
         params: Dict,
         runtime_context: CalrissianContext,
+        calling_workspace: str,
+        executing_workspace: str,
+        job_id: str,
         cwl_entry_point: str = None,
         pod_env_vars: Dict = None,
         pod_node_selector: Dict = None,
@@ -45,6 +50,7 @@ class CalrissianJob:
         keep_pods: bool = False,
         backoff_limit: int = 2,
         tool_logs: bool = False,
+        token: str = None,
     ):
 
         self.cwl = cwl
@@ -64,6 +70,11 @@ class CalrissianJob:
         self.backoff_limit = backoff_limit
         self.volume_calrissian_wdir = "volume-calrissian-wdir"
         self.tool_logs = tool_logs
+        self.token = token
+        self.calling_workspace = calling_workspace
+        self.executing_workspace = executing_workspace
+        self.aws_credentials_workspace_volume_name = f"aws-credentials-workspace-{job_id}"
+        self.aws_credentials_user_service_volume_name = f"aws-credentials-service-{job_id}"
 
         if self.security_context is None:
             logger.info(
@@ -82,6 +93,16 @@ class CalrissianJob:
         self._create_cwl_cm()
         logger.info("create processing parameters config map")
         self._create_params_cm()
+
+        # Add env var for aws creds location
+        if not self.pod_env_vars:
+            self.pod_env_vars = {}
+
+        # Add shared credentials file location
+        self.pod_env_vars.update({"AWS_SHARED_CREDENTIALS_FILE": AWS_SHARED_CREDENTIALS_FILE})
+
+        # Remove AWS_WEB_IDENTITY_TOKEN_FILE to avoid service account conflicts
+        self.pod_env_vars.update({"AWS_WEB_IDENTITY_TOKEN_FILE": ""})
 
         if self.pod_env_vars:
             logger.info("create pod environment variables config map")
@@ -180,6 +201,40 @@ class CalrissianJob:
             name="volume-params",
         )
 
+        # Mount AWS Credentials Volume
+        volume_name = "aws-credentials-workspace"
+        aws_cred_pvc_volume_workspace = client.V1Volume(
+            name=volume_name,
+            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                claim_name=self.aws_credentials_workspace_volume_name,
+                read_only=False,
+            ),
+        )
+
+        aws_cred_volume_mount_workspace = client.V1VolumeMount(
+            mount_path=f"{AWS_SHARED_CREDENTIALS_DIR}/workspace",
+            name=volume_name,
+            read_only=False,
+        )
+        logger.info(f"Mounting workspace aws-credentials volume for workspaces at {aws_cred_volume_mount_workspace.mount_path}.")
+
+        # Mount AWS Credentials Volume
+        volume_name = "aws-credentials-service"
+        aws_cred_pvc_volume_service = client.V1Volume(
+            name=volume_name,
+            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                claim_name=self.aws_credentials_user_service_volume_name,
+                read_only=False,
+            ),
+        )
+
+        aws_cred_volume_mount_service = client.V1VolumeMount(
+            mount_path=f"{AWS_SHARED_CREDENTIALS_DIR}/service",
+            name=volume_name,
+            read_only=False,
+        )
+        logger.info(f"Mounting workspace aws-credentials volume for user service at {aws_cred_volume_mount_service.mount_path}.")
+
         # the RWX volume for Calrissian from volume claim
         calrissian_wdir_volume = client.V1Volume(
             name=self.volume_calrissian_wdir,
@@ -194,11 +249,14 @@ class CalrissianJob:
             read_only=False,
         )
 
-        volumes = [workflow_volume, params_volume, calrissian_wdir_volume]
+
+        volumes = [workflow_volume, params_volume, calrissian_wdir_volume, aws_cred_pvc_volume_workspace, aws_cred_pvc_volume_service]
         volume_mounts = [
             workflow_volume_mount,
             params_volume_mount,
             calrissian_wdir_volume_mount,
+            aws_cred_volume_mount_workspace,
+            aws_cred_volume_mount_service,
         ]
 
         if self.pod_env_vars:
@@ -282,6 +340,64 @@ class CalrissianJob:
                 volumes.append(efs_pvc_volume)
 
                 volume_mounts.append(efs_volume_mount)
+
+        # Mount calling workspace PVC
+        if self.calling_workspace != self.executing_workspace:
+            # Load kubeconfig
+            config.load_incluster_config()
+
+            # Create a CustomObjectsApi client instance
+            custom_api = client.CustomObjectsApi()
+
+            # Get calling workspace CRD
+            try:
+                calling_workspace = custom_api.get_namespaced_custom_object(
+                    group="core.telespazio-uk.io",
+                    version="v1alpha1",
+                    namespace="workspaces",
+                    plural="workspaces",
+                    name=self.calling_workspace,
+                )
+            except Exception as e:
+                logger.error(f"Error in getting workspace CRD: {e}")
+                raise e
+            
+            # Get efs access-point details
+            efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
+
+            # Get persistent volumes from the calling workspace
+            persistent_volumes = calling_workspace["spec"]["storage"]["persistentVolumes"]
+
+            pv_name_map = {}
+            # Construct pv and access point map
+            for pv in persistent_volumes:
+                pv_name_map.update({pv["volumeSource"]["accessPointName"]: pv["name"]})
+
+            for access_point in efs_access_points:
+                pvc_mount_path = pv_name_map[access_point["name"]]
+                basic_pv_name = pvc_mount_path.replace("pv-", "", 1)
+                pv_name = f"temp-pv-{basic_pv_name}"
+                pvc_name = f"temp-pvc-workspace-{basic_pv_name}"
+                logger.info(
+                    f"Mount persistent volume {pv_name}"
+                )
+                efs_pvc_volume = client.V1Volume(
+                    name=pv_name,
+                    persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
+                        claim_name=pvc_name
+                    ),
+                )
+
+                efs_volume_mount = client.V1VolumeMount(
+                    mount_path=f"/workspace/{pvc_mount_path}",
+                    name=pv_name
+                )
+
+                logger.info(f"Mounting calling workspace EFS volume {pv_name} with claim {pvc_name} at {efs_volume_mount.mount_path}.")
+
+                volumes.append(efs_pvc_volume)
+
+                volume_mounts.append(efs_volume_mount)        
 
         pod_spec = self.create_pod_template(
             name="calrissian_pod",

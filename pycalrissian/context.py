@@ -20,6 +20,9 @@ class CalrissianContext:
         namespace: str,
         storage_class: str,
         volume_size: str,
+        calling_workspace: str,
+        executing_workspace: str,
+        job_id: str, 
         service_account: str = "default",
         resource_quota: Dict = None,
         image_pull_secrets: Dict = None,
@@ -58,8 +61,17 @@ class CalrissianContext:
         self.secret_name = "container-rg"
         self.calrissian_wdir = "calrissian-wdir"
 
+        # Configure AWS Creds Volume
+        self.aws_credentials_workspace_volume_name = f"aws-credentials-workspace-{job_id}"
+        self.aws_credentials_user_service_volume_name = f"aws-credentials-service-{job_id}"
+        self.aws_storage_class = "file-storage"
+
         self.labels = labels
         self.annotations = annotations
+
+        self.calling_workspace = calling_workspace
+        self.executing_workspace = executing_workspace
+        self.job_id = job_id
 
     def initialise(self):
         """Create the kubernetes resources to run a Calrissian job
@@ -112,6 +124,91 @@ class CalrissianContext:
             size=self.volume_size,
             storage_class=self.storage_class,
             access_modes=["ReadWriteMany"],
+        )
+
+        assert isinstance(response, V1PersistentVolumeClaim)
+
+        # create additional calling workspace PVC only when calling_workspace is provided
+        if self.calling_workspace != self.executing_workspace:
+            # Load kubeconfig
+            config.load_incluster_config()
+
+            # Create a CustomObjectsApi client instance
+            custom_api = client.CustomObjectsApi()
+
+            # extract calling workspace details
+            try:
+                calling_workspace = custom_api.get_namespaced_custom_object(
+                    group="core.telespazio-uk.io",
+                    version="v1alpha1",
+                    namespace="workspaces",
+                    plural="workspaces",
+                    name=self.calling_workspace,
+                )
+            except Exception as e:
+                logger.error(f"Error in getting workspace CRD: {e}")
+                raise e
+            
+            # Get efs access-point details
+            efs_access_points = calling_workspace["status"]["aws"]["efs"]["accessPoints"]
+
+            # Get persistent volumes from the calling workspace
+            persistent_volumes = calling_workspace["spec"]["storage"]["persistentVolumes"]
+
+            pv_name_map = {}
+            # Construct pv and access point map
+            for pv in persistent_volumes:
+                pv_name_map.update({pv["volumeSource"]["accessPointName"]: pv["name"]})
+
+            # Create PV and PVC for each access point
+            for access_point in efs_access_points:
+                pvc_mount_path = pv_name_map[access_point["name"]]
+                basic_pv_name = pvc_mount_path.replace("pv-", "", 1)
+                pv_name = f"temp-pv-{basic_pv_name}"
+                pvc_name = f"temp-pvc-workspace-{basic_pv_name}"
+                logger.info(
+                    f"create persistent volume {pv_name} of {self.volume_size}"
+                )
+                response = self.create_pv(name=pv_name, 
+                                        size=self.volume_size, 
+                                        storage_class=self.storage_class, 
+                                        volume_handle=f"{access_point['fsID']}::{access_point['accessPointID']}", 
+                                        pvc_name=pvc_name,
+                )
+
+                logger.info(
+                    f"create persistent volume claim {pvc_name} of {self.volume_size} "
+                    f"with storage class {self.storage_class}"
+                )
+                response = self.create_pvc(
+                    name=pvc_name,
+                    size=self.volume_size,
+                    storage_class=self.storage_class,
+                    access_modes=["ReadWriteMany"],
+                )
+
+                assert isinstance(response, V1PersistentVolumeClaim)
+
+        # Create AWS Creds PVCs
+        logger.info(
+            f"create persistent volume claim {self.aws_credentials_workspace_volume_name} of {self.volume_size} "
+            f"with storage class {self.aws_storage_class}"
+        )
+        response = self.create_pvc(
+            name=self.aws_credentials_workspace_volume_name,
+            size=self.volume_size,
+            storage_class=self.aws_storage_class,
+            access_modes=["ReadWriteOnce"],
+        )
+        logger.info(
+            f"create persistent volume claim {self.aws_credentials_user_service_volume_name} of {self.volume_size} "
+            f"with storage class {self.aws_storage_class}"
+        )
+        response = self.create_pvc(
+            name=self.aws_credentials_user_service_volume_name,
+            size=self.volume_size,
+            storage_class=self.aws_storage_class,
+            access_modes=["ReadWriteOnce"],
         )
 
         assert isinstance(response, V1PersistentVolumeClaim)
@@ -221,6 +318,10 @@ class CalrissianContext:
         ] = self.core_v1_api.read_namespaced_persistent_volume_claim  # noqa: E501
 
         read_methods[
+            "read_persistent_volume"
+        ] = self.core_v1_api.read_persistent_volume  # noqa: E501
+
+        read_methods[
             "read_namespaced_secret"
         ] = self.core_v1_api.read_namespaced_secret  # noqa: E501
 
@@ -238,6 +339,8 @@ class CalrissianContext:
                 "read_namespaced_resource_quota",
             ]:
                 read_methods[read_method](namespace=self.namespace, **kwargs)
+            elif read_method == "read_persistent_volume": 
+                read_methods[read_method](**kwargs)
             else:
                 read_methods[read_method](self.namespace)
         except ApiException as exc:
@@ -272,6 +375,11 @@ class CalrissianContext:
         return self.is_object_created(
             "read_namespaced_persistent_volume_claim", **kwargs
         )  # noqa: E501
+    
+    def is_pv_created(self, **kwargs):
+            
+            return self.is_object_created("read_persistent_volume", **kwargs
+            ) # noqa: E501
 
     def is_resource_quota_created(self, **kwargs):
 
@@ -445,6 +553,45 @@ class CalrissianContext:
             logger.error(
                 f"resource quota {name} not created in the time interval assigned:"
                 f" Exception when calling get status: {e}\n"
+            )
+            raise e
+        
+    def create_pv(self, name, size, storage_class, volume_handle, pvc_name):
+
+        if self.is_pv_created(name=name):
+
+            return self.core_v1_api.read_persistent_volume(
+                name=name
+            )
+        
+        metadata = client.V1ObjectMeta(name=name)
+
+        spec = client.V1PersistentVolumeSpec(
+            capacity={"storage": size},
+            volume_mode="Filesystem",
+            access_modes=["ReadWriteMany"],
+            persistent_volume_reclaim_policy="Retain",
+            storage_class_name=storage_class,
+            claim_ref=client.V1ObjectReference(
+                kind="PersistentVolumeClaim",
+                namespace=self.namespace,
+                name=pvc_name
+            ),
+            csi=client.V1CSIPersistentVolumeSource(
+                driver="efs.csi.aws.com",
+                volume_handle=volume_handle
+            )
+        )
+
+        body = client.V1PersistentVolume(metadata=metadata, spec=spec)
+
+        try:
+            response = self.core_v1_api.create_persistent_volume(body, pretty=True)
+            logger.info(f"pv {name} created")
+            return response
+        except ApiException as e:
+            logger.error(
+                f"pv {name} not created: Exception when calling create_persistent_volume: {e}\n"
             )
             raise e
 

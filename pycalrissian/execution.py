@@ -197,6 +197,7 @@ class CalrissianExecution:
         except ApiException as e:
             logger.error(f"Exception when calling get status: {e}\n")
             raise e
+        
 
     def monitor(
         self, interval: int = 5, grace_period=120, wall_time: Optional[int] = None
