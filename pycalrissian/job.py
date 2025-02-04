@@ -205,13 +205,11 @@ class CalrissianJob:
         )
 
 
-        volumes = [workflow_volume, params_volume, calrissian_wdir_volume, aws_cred_pvc_volume_workspace, aws_cred_pvc_volume_service]
+        volumes = [workflow_volume, params_volume, calrissian_wdir_volume]
         volume_mounts = [
             workflow_volume_mount,
             params_volume_mount,
             calrissian_wdir_volume_mount,
-            aws_cred_volume_mount_workspace,
-            aws_cred_volume_mount_service,
         ]
 
         if self.pod_env_vars:
