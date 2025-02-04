@@ -61,11 +61,6 @@ class CalrissianContext:
         self.secret_name = "container-rg"
         self.calrissian_wdir = "calrissian-wdir"
 
-        # Configure AWS Creds Volume
-        self.aws_credentials_workspace_volume_name = f"aws-credentials-workspace-{job_id}"
-        self.aws_credentials_user_service_volume_name = f"aws-credentials-service-{job_id}"
-        self.aws_storage_class = "file-storage"
-
         self.labels = labels
         self.annotations = annotations
 
