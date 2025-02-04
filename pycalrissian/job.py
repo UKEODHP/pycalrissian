@@ -50,7 +50,6 @@ class CalrissianJob:
         keep_pods: bool = False,
         backoff_limit: int = 2,
         tool_logs: bool = False,
-        token: str = None,
     ):
 
         self.cwl = cwl
@@ -70,7 +69,6 @@ class CalrissianJob:
         self.backoff_limit = backoff_limit
         self.volume_calrissian_wdir = "volume-calrissian-wdir"
         self.tool_logs = tool_logs
-        self.token = token
         self.calling_workspace = calling_workspace
         self.executing_workspace = executing_workspace
         self.aws_credentials_workspace_volume_name = f"aws-credentials-workspace-{job_id}"
