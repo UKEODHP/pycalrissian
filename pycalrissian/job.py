@@ -90,9 +90,6 @@ class CalrissianJob:
         if not self.pod_env_vars:
             self.pod_env_vars = {}
 
-        # Remove AWS_WEB_IDENTITY_TOKEN_FILE to avoid service account conflicts
-        self.pod_env_vars.update({"AWS_WEB_IDENTITY_TOKEN_FILE": ""})
-
         if self.pod_env_vars:
             logger.info("create pod environment variables config map")
             self._create_pod_env_vars_cm()
