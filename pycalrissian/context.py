@@ -61,11 +61,6 @@ class CalrissianContext:
         self.secret_name = "container-rg"
         self.calrissian_wdir = "calrissian-wdir"
 
-        # Configure AWS Creds Volume
-        self.aws_credentials_workspace_volume_name = f"aws-credentials-workspace-{job_id}"
-        self.aws_credentials_user_service_volume_name = f"aws-credentials-service-{job_id}"
-        self.aws_storage_class = "file-storage"
-
         self.labels = labels
         self.annotations = annotations
 
@@ -188,30 +183,6 @@ class CalrissianContext:
                 )
 
                 assert isinstance(response, V1PersistentVolumeClaim)
-
-        # Create AWS Creds PVCs
-        logger.info(
-            f"create persistent volume claim {self.aws_credentials_workspace_volume_name} of {self.volume_size} "
-            f"with storage class {self.aws_storage_class}"
-        )
-        response = self.create_pvc(
-            name=self.aws_credentials_workspace_volume_name,
-            size=self.volume_size,
-            storage_class=self.aws_storage_class,
-            access_modes=["ReadWriteOnce"],
-        )
-        logger.info(
-            f"create persistent volume claim {self.aws_credentials_user_service_volume_name} of {self.volume_size} "
-            f"with storage class {self.aws_storage_class}"
-        )
-        response = self.create_pvc(
-            name=self.aws_credentials_user_service_volume_name,
-            size=self.volume_size,
-            storage_class=self.aws_storage_class,
-            access_modes=["ReadWriteOnce"],
-        )
-
-        assert isinstance(response, V1PersistentVolumeClaim)
 
         if self.image_pull_secrets:
             logger.info(f"create secret {self.secret_name}")

@@ -24,10 +24,6 @@ class ContainerNames(Enum):
 # SIDECAR_OUTPUT = "sidecar-container-output"
 # SIDECAR_COPY = "sidecar-container-copy"
 
-AWS_SHARED_CREDENTIALS_DIR = os.getenv("AWS_SHARED_CREDENTIALS_DIR", "/aws-credentials")
-AWS_SHARED_CREDENTIALS_FILENAME = os.getenv("AWS_SHARED_CREDENTIALS_FILENAME", "credentials")
-AWS_SHARED_CREDENTIALS_FILE = os.path.join(AWS_SHARED_CREDENTIALS_DIR, AWS_SHARED_CREDENTIALS_FILENAME)
-
 class CalrissianJob:
     def __init__(
         self,
@@ -50,7 +46,6 @@ class CalrissianJob:
         keep_pods: bool = False,
         backoff_limit: int = 2,
         tool_logs: bool = False,
-        token: str = None,
     ):
 
         self.cwl = cwl
@@ -70,11 +65,8 @@ class CalrissianJob:
         self.backoff_limit = backoff_limit
         self.volume_calrissian_wdir = "volume-calrissian-wdir"
         self.tool_logs = tool_logs
-        self.token = token
         self.calling_workspace = calling_workspace
         self.executing_workspace = executing_workspace
-        self.aws_credentials_workspace_volume_name = f"aws-credentials-workspace-{job_id}"
-        self.aws_credentials_user_service_volume_name = f"aws-credentials-service-{job_id}"
 
         if self.security_context is None:
             logger.info(
@@ -97,12 +89,6 @@ class CalrissianJob:
         # Add env var for aws creds location
         if not self.pod_env_vars:
             self.pod_env_vars = {}
-
-        # Add shared credentials file location
-        self.pod_env_vars.update({"AWS_SHARED_CREDENTIALS_FILE": AWS_SHARED_CREDENTIALS_FILE})
-
-        # Remove AWS_WEB_IDENTITY_TOKEN_FILE to avoid service account conflicts
-        self.pod_env_vars.update({"AWS_WEB_IDENTITY_TOKEN_FILE": ""})
 
         if self.pod_env_vars:
             logger.info("create pod environment variables config map")
@@ -201,40 +187,6 @@ class CalrissianJob:
             name="volume-params",
         )
 
-        # Mount AWS Credentials Volume
-        volume_name = "aws-credentials-workspace"
-        aws_cred_pvc_volume_workspace = client.V1Volume(
-            name=volume_name,
-            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name=self.aws_credentials_workspace_volume_name,
-                read_only=False,
-            ),
-        )
-
-        aws_cred_volume_mount_workspace = client.V1VolumeMount(
-            mount_path=f"{AWS_SHARED_CREDENTIALS_DIR}/workspace",
-            name=volume_name,
-            read_only=False,
-        )
-        logger.info(f"Mounting workspace aws-credentials volume for workspaces at {aws_cred_volume_mount_workspace.mount_path}.")
-
-        # Mount AWS Credentials Volume
-        volume_name = "aws-credentials-service"
-        aws_cred_pvc_volume_service = client.V1Volume(
-            name=volume_name,
-            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(
-                claim_name=self.aws_credentials_user_service_volume_name,
-                read_only=False,
-            ),
-        )
-
-        aws_cred_volume_mount_service = client.V1VolumeMount(
-            mount_path=f"{AWS_SHARED_CREDENTIALS_DIR}/service",
-            name=volume_name,
-            read_only=False,
-        )
-        logger.info(f"Mounting workspace aws-credentials volume for user service at {aws_cred_volume_mount_service.mount_path}.")
-
         # the RWX volume for Calrissian from volume claim
         calrissian_wdir_volume = client.V1Volume(
             name=self.volume_calrissian_wdir,
@@ -250,13 +202,11 @@ class CalrissianJob:
         )
 
 
-        volumes = [workflow_volume, params_volume, calrissian_wdir_volume, aws_cred_pvc_volume_workspace, aws_cred_pvc_volume_service]
+        volumes = [workflow_volume, params_volume, calrissian_wdir_volume]
         volume_mounts = [
             workflow_volume_mount,
             params_volume_mount,
             calrissian_wdir_volume_mount,
-            aws_cred_volume_mount_workspace,
-            aws_cred_volume_mount_service,
         ]
 
         if self.pod_env_vars:
