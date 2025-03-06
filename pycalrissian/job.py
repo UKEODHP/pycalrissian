@@ -67,6 +67,7 @@ class CalrissianJob:
         self.tool_logs = tool_logs
         self.calling_workspace = calling_workspace
         self.executing_workspace = executing_workspace
+        self.job_id = job_id
 
         if self.security_context is None:
             logger.info(
@@ -109,7 +110,7 @@ class CalrissianJob:
     def _create_params_cm(self):
         """Create configMap with params"""
         self.runtime_context.create_configmap(
-            name="params", key="params", content=yaml.dump(self.params)
+            name=f"params-{self.job_id}", key="params", content=yaml.dump(self.params)
         )
 
     def _create_pod_env_vars_cm(self):
@@ -176,7 +177,7 @@ class CalrissianJob:
         params_volume = client.V1Volume(
             name="volume-params",
             config_map=client.V1ConfigMapVolumeSource(
-                name="params",
+                name=f"params-{self.job_id}",
                 optional=False,
                 items=[client.V1KeyToPath(key="params", path="params.yml", mode=0o644)],
                 default_mode=0o644,
