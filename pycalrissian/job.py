@@ -116,7 +116,7 @@ class CalrissianJob:
     def _create_pod_env_vars_cm(self):
         """Create configMap with pod environment variables"""
         self.runtime_context.create_configmap(
-            name=f"pod-env-vars",
+            name="pod-env-vars",
             key="pod-env-vars",
             content=json.dumps(self.pod_env_vars),
         )
