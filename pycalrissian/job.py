@@ -104,7 +104,7 @@ class CalrissianJob:
     def _create_cwl_cm(self):
         """Create configMap with CWL"""
         self.runtime_context.create_configmap(
-            name="cwl-workflow", key="cwl-workflow", content=yaml.dump(self.cwl)
+            name=f"cwl-workflow-{self.job_id}", key="cwl-workflow", content=yaml.dump(self.cwl)
         )
 
     def _create_params_cm(self):
@@ -116,7 +116,7 @@ class CalrissianJob:
     def _create_pod_env_vars_cm(self):
         """Create configMap with pod environment variables"""
         self.runtime_context.create_configmap(
-            name="pod-env-vars",
+            name=f"pod-env-vars",
             key="pod-env-vars",
             content=json.dumps(self.pod_env_vars),
         )
@@ -158,7 +158,7 @@ class CalrissianJob:
         workflow_volume = client.V1Volume(
             name="volume-cwl-workflow",
             config_map=client.V1ConfigMapVolumeSource(
-                name="cwl-workflow",
+                name=f"cwl-workflow-{self.job_id}",
                 optional=False,
                 items=[
                     client.V1KeyToPath(
