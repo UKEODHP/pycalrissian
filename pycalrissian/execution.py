@@ -81,7 +81,29 @@ class CalrissianExecution:
         if self.is_succeeded:
             filename = self.get_file_from_volume(["output.json"])[0]
             with open(filename, "r") as staged_file:
-                return json.load(staged_file)
+                try:
+                    # Attempt to load JSON from file
+                    data = json.load(staged_file)
+                except json.JSONDecodeError as e:
+                    # Common error seen in calrissian output
+                    if e.msg == "Extra data":
+                        count = 0
+                        content = staged_file.read()
+                        # Trim to only first 2 close brackets
+                        for i, char in enumerate(content):
+                            if char == '}':
+                                count += 1
+                            if count == 2:
+                                corrected_content = content[:i+1]
+                    else:
+                        logger.error(f"Error decoding JSON: {e}")
+                        raise e
+                    try:
+                        data = json.loads(corrected_content)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Error decoding corrected JSON: {e}")
+                        raise e
+                return data
 
     def get_usage_report(self) -> Dict:
         """Returns the job usage report"""
