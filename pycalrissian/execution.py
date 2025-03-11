@@ -86,22 +86,21 @@ class CalrissianExecution:
                     data = json.load(staged_file)
                 except json.JSONDecodeError as e:
                     # Common error seen in calrissian output
-                    if e.msg == "Extra data":
-                        count = 0
-                        content = staged_file.read()
-                        # Trim to only first 2 close brackets
-                        for i, char in enumerate(content):
-                            if char == '}':
-                                count += 1
-                            if count == 2:
-                                corrected_content = content[:i+1]
+                    content = staged_file.read()
+                    # A string often seen added to end of the file which must be removed
+                    sequence = 'q"\n}\n}'
+                    if content.endswith(sequence):
+                        content = content.rsplit(sequence, 1)[0]
+                        try:
+                            data = json.loads(content)
+                            e.msg = None
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Error decoding JSON: {e}")
+                            logger.error(content)
+                            raise e
                     else:
-                        logger.error(f"Error decoding JSON: {e}")
-                        raise e
-                    try:
-                        data = json.loads(corrected_content)
-                    except json.JSONDecodeError as e:
-                        logger.error(f"Error decoding corrected JSON: {e}")
+                        logger.error(f"Error decoding JSON, unrecognised extra data: {e}")
+                        logger.error(content)
                         raise e
                 return data
 
