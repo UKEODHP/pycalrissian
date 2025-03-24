@@ -116,7 +116,7 @@ class CalrissianJob:
     def _create_pod_env_vars_cm(self):
         """Create configMap with pod environment variables"""
         self.runtime_context.create_configmap(
-            name="pod-env-vars",
+            name=f"pod-env-vars-{self.job_id}",
             key="pod-env-vars",
             content=json.dumps(self.pod_env_vars),
         )
@@ -124,7 +124,7 @@ class CalrissianJob:
     def _create_pod_node_selector_cm(self):
         """Create configMap with pod node selector"""
         self.runtime_context.create_configmap(
-            name="pod-node-selector",
+            name=f"pod-node-selector-{self.job_id}",
             key="pod-node-selector",
             content=json.dumps(self.pod_node_selector),
         )
@@ -214,7 +214,7 @@ class CalrissianJob:
             pod_env_vars_volume = client.V1Volume(
                 name="volume-pod-env-vars",
                 config_map=client.V1ConfigMapVolumeSource(
-                    name="pod-env-vars",
+                    name=f"pod-env-vars-{self.job_id}",
                     optional=False,
                     items=[
                         client.V1KeyToPath(
@@ -237,7 +237,7 @@ class CalrissianJob:
             pod_node_selector_volume = client.V1Volume(
                 name="volume-pod-node-selector",
                 config_map=client.V1ConfigMapVolumeSource(
-                    name="pod-node-selector",
+                    name=f"pod-node-selector-{self.job_id}",
                     optional=False,
                     items=[
                         client.V1KeyToPath(
