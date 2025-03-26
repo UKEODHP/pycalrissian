@@ -413,6 +413,10 @@ class CalrissianJob:
                 ),
                 termination_grace_period_seconds=120,
                 service_account_name=service_account,
+                node_selector={"role": "workflows"},
+                tolerations=[
+                    {"key": "ades.zoo.org/dedicated", "operator": "Equal", "value": "job", "effect": "NoSchedule"}
+                ],
             ),
             metadata=client.V1ObjectMeta(name=name, labels={"pod_name": name}),
         )
