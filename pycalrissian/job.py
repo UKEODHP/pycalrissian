@@ -358,6 +358,7 @@ class CalrissianJob:
             volumes=volumes,
             security_context=self.security_context,
             service_account=self.service_account,
+            node_selector=self.pod_node_selector,
         )
         logger.info(f"Created pod template with service account {self.service_account}")
 
@@ -413,7 +414,6 @@ class CalrissianJob:
                 ),
                 termination_grace_period_seconds=120,
                 service_account_name=service_account,
-                node_selector={"role": "workflows"},
                 tolerations=[
                     {"key": "ades.zoo.org/dedicated", "operator": "Equal", "value": "job", "effect": "NoSchedule"}
                 ],
